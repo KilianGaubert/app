@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classement League Of Legends</title>
+    <link rel="icon" href="static/images/Riot.png" type="image/png">
+    <link rel="stylesheet" href="static/RiotAPI.css">
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<script src="Fonction.js"></script>
+
+<script>
+    gamePuuid = localStorage.getItem("gamePuuid") || "Aucun Puuid";
+    gameName = localStorage.getItem("gameName") || "Inconnu";
+    tagLine = localStorage.getItem("tagLine") || "Aucune tagline";
+    // Exécution des fonctions après le chargement du script
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        appelHeader_Bets(() => {
+            document.getElementById("ResearchgameName").value = localStorage.getItem("gameName") || "";
+            document.getElementById("ResearchtagLine").value = localStorage.getItem("tagLine") || "";
+
+        });
+    });
+
+async function initialize() {
+    await UpdateBets();        // Attend que la mise à jour des paris soit terminée
+    UpdateClassementBets();     // Ensuite, met à jour le classement des paris
+}
+
+// Cette fonction est une "wrapper" pour appeler initialize() sans problème de promesse
+function startInitialize() {
+    initialize().catch(error => {
+        console.error('Erreur lors de l\'initialisation:', error);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    startInitialize();
+});
+
+// Exécuter startInitialize toutes les 100 000 ms (100 secondes)
+setInterval(startInitialize, 10000);
+
+</script>
+</body>
+</html>

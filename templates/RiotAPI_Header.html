@@ -1,0 +1,47 @@
+<div id="PageLeft" class="PageLeft">
+    <div id="SummonerResearch" class="SummonerResearch">
+        <input type="text" id="ResearchgameName" placeholder="Entrez le Game Name">
+        <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
+        <button onclick="DemandePseudo()" class="Button" >Rechercher</button>
+    </div>
+
+    <div id="SummonerInfo" class="SummonerInfo" style="display: none;">
+        <div id="HeaderProfileInfo" class="HeaderProfileInfo">
+            <div id="ProfileIcon" class="ProfileIcon"></div>
+            <div id="Level" class="Level"></div>
+            <div id="Info" class="Info">
+                <div id="InfoName" class="InfoName"> 
+                    <div id="gameName" class="gameName"> </div>
+                    <div id="tagLine" class="tagLine"> </div>
+                </div>
+                <div id="BoutonActu" class="BoutonActu">
+                    <button id="Update" class="Button" onclick="">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="Match_Info" class="Match_Info">
+            <div id="RankedInfo" class="RankedInfo">
+                <div id="RankIcon" class="RankIcon"></div>
+                <div id="Classement" class="Classement">
+                    <div id="Tier" class="Tier"> </div>
+                    <div id="LP" class="LP"> </div>
+                </div>
+                <div id="10MinClassement" class="10MinClassement"></div>
+            </div>
+
+            <div id="historiqueInfo" class="historiqueInfo"> </div>
+    </div>
+</div>
+<div id="PageRight" class="PageRight">
+    <div class="sidebar" id="mySidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="RiotAPI_Statistique">Accueil</a></li>
+            <li><a href="RiotAPI_Masteries">Masteries</a></li>
+            <li><a href="RiotAPI_Parties">Partie en cours</a></li>
+            <li><a href="RiotAPI_Classement">Classement</a></li>
+            <li><a href="RiotAPI_Bets">Bets</a></li>
+        </ul>
+    </div>
+</div>

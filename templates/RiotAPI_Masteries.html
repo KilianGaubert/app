@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistique League Of Legends</title>
+    <link rel="icon" href="static/images/Riot.png" type="image/png">
+    <link rel="stylesheet" href="static/RiotAPI.css">
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<!-- Script externe -->
+<script src="Fonction.js"></script>
+
+<!-- Script interne -->
+<script>
+    // Récupération des valeurs stockées en local
+    gamePuuid = localStorage.getItem("gamePuuid") || "Aucun Puuid";
+    gameName = localStorage.getItem("gameName") || "Inconnu";
+    tagLine = localStorage.getItem("tagLine") || "Aucune tagline";
+
+    // Exécution des fonctions après le chargement du script
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        appelHeader(() => {
+            document.getElementById("ResearchgameName").value = localStorage.getItem("gameName") || "";
+            document.getElementById("ResearchtagLine").value = localStorage.getItem("tagLine") || "";
+            document.getElementById("Update").onclick = RechercheMasteries;
+
+            if (gamePuuid !== "") {
+                DemandePseudo();
+            }
+        });
+    });
+</script>

@@ -1,0 +1,50 @@
+<div id="PageLeft" class="PageLeft">
+    <div id="SummonerResearch" class="SummonerResearch">
+        <input type="text" id="ResearchgameName" placeholder="Entrez le Game Name">
+        <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
+    <button id="Ajout" onclick="RecherchePartie('BestGameInfo')" class="Button">Joueur parier</button>
+    </div>
+    <div id="Match_Info" class="Match_Info">
+        <div id="betsInfo" class="betsInfo">
+            <div id="BestGameInfo" class="BestGameInfo">
+            </div>            
+            <div id="Bets" class="Bets">
+                <input type="text" id="BetsPrice" placeholder="Combien voulez-vous parier ?">
+                <button id="BestVictoire" onclick="Bets('Victoire')" class="Button">Victoire</button>
+                <button id="BestDefaite" onclick="Bets('Defaite')" class="Button">Defaite</button>
+            </div>
+        </div>
+
+        <div id="historiqueInfo" class="historiqueInfo">
+            <h1>Liste des bets</h1>
+            <table id="joueursTable">
+                <thead>
+                    <tr>
+                        <th>Parieurs</th>
+                        <th>gameId</th>
+                        <th>bet_amount</th>
+                        <th>bet_teamId</th>
+                        <th>bet_status</th>
+                        <th>bet_time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Les joueurs seront insérés ici -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="PageRight" class="PageRight">
+    <div class="sidebar" id="mySidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="RiotAPI_Statistique">Accueil</a></li>
+            <li><a href="RiotAPI_Masteries">Masteries</a></li>
+            <li><a href="RiotAPI_Parties">Partie en cours</a></li>
+            <li><a href="RiotAPI_Classement">Classement</a></li>
+            <li><a href="RiotAPI_Bets">Bets</a></li>
+        </ul>
+    </div>
+</div>

@@ -1,0 +1,41 @@
+<div id="PageLeft" class="PageLeft">
+    <div id="SummonerResearch" class="SummonerResearch">
+        <input type="text" id="ResearchgameName" placeholder="Entrez le Game Name">
+        <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
+    <button id="Ajout" onclick="AjoutJoueurs()" class="Button">Ajouter</button>
+    </div>
+    <div id="Match_Info" class="Match_Info">
+        <div id="historiqueInfo" class="historiqueInfo">
+            <h1>Liste des joueurs</h1>
+            <table id="joueursTable">
+                <thead>
+                    <tr>
+                        <th>Icone</th>
+                        <th>Nom du joueur</th>
+                        <th>Tag</th>
+                        <th>Niveau</th>
+                        <th>Classement</th>
+                        <th>Balance</th>
+                        <th>En partie ?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Les joueurs seront insérés ici -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="PageRight" class="PageRight">
+    <div class="sidebar" id="mySidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="RiotAPI_Statistique">Accueil</a></li>
+            <li><a href="RiotAPI_Masteries">Masteries</a></li>
+            <li><a href="RiotAPI_Parties">Partie en cours</a></li>
+            <li><a href="RiotAPI_Classement">Classement</a></li>
+            <li><a href="RiotAPI_Bets">Bets</a></li>
+        </ul>
+    </div>
+</div>
