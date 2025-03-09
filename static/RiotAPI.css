@@ -18,6 +18,13 @@ Button:hover {
     width: 100%;
 }
 
+#BetsBigInfo{
+    background-color: #8a8a8a;
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+    margin-top: 10px;
+}
 #betsInfo{
     background-color: #8a8a8a;
     padding: 10px;
@@ -173,6 +180,13 @@ Button:hover {
 
 .Match_Info {
     display: flex;
+    margin-top: 10px;
+    text-align: center;
+    flex-direction: row; /* Organise les éléments en colonne */
+    gap: 2px;
+}
+
+.Match_Bets {
     margin-top: 10px;
     text-align: center;
     flex-direction: row; /* Organise les éléments en colonne */
@@ -379,3 +393,45 @@ Button:hover {
 #joueursTable tbody tr:nth-child(odd) {
     background-color: #2a2a2a;
 }
+
+
+#popupGame {
+    position: fixed;
+    top: 5%;
+    left: 15%;
+    width: 70vw;  /* 70% de la largeur de l'écran */
+    height: 90vh; /* 70% de la hauteur de l'écran */
+    background: rgba(0, 0, 0, 0.8); /* Fond sombre semi-transparent */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Très élevé pour que ce soit au-dessus des autres éléments */
+    overflow: hidden; /* Pour éviter que l'on voit du contenu qui dépasse du popup */
+    border-radius: 10px;
+}
+
+#popupGameContent {
+    width: 100%; /* Prendre toute la largeur disponible dans #popupGame */
+    height: 100%; /* Prendre toute la hauteur disponible dans #popupGame */
+    background: rgba(255, 255, 255, 0.9); /* Fond blanc semi-transparent */
+    border-radius: 10px;
+    overflow-y: auto; /* Permet le scroll si le contenu dépasse */
+    position: relative;
+    z-index: 10000; /* Assurer que le contenu est au-dessus du fond sombre */
+}
+
+
+#closePopup {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: red;
+    font-weight: bold;
+}
+
+#closePopup:hover {
+    color: darkred;
+}
+

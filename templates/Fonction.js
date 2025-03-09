@@ -102,6 +102,7 @@ function getSummonerByKey(key) {
             return null;
         });
 }
+
 function convertSecondsToMinutes(seconds) {
     let minutes = Math.floor(seconds / 60);
     let remainingSeconds = seconds % 60;
@@ -224,6 +225,12 @@ async function fetchTimeline(matchId) {
     return await timelineResponse.json();
 }
 
+function formatDate(dateString) {
+    return dateString
+        .replace('T', ' ')  // Remplacer 'T' par un espace
+        .replace(/\.\d+/, '')  // Supprimer les millisecondes
+        .replace('Z', '');  // Supprimer le 'Z'
+}
 // Fonction pour initialiser les stats par lane
 function initializeLaneStats() {
     return {
@@ -1129,38 +1136,366 @@ async function UpdateClassementBets() {
 
         tbody.innerHTML = '';  // Vider le tableau avant de l'actualiser
 
+        // Trier les paris par date (bet_time) du plus récent au plus ancien
+        bets.sort((a, b) => new Date(b.bet_time) - new Date(a.bet_time));
+
         bets.forEach(bet => {
             const tr = document.createElement('tr');
             
             const gameNameTd = document.createElement('td');
             gameNameTd.textContent = `${bet.gameName}#${bet.tagLine}`;
             tr.appendChild(gameNameTd);
-
+        
             const gameIdTd = document.createElement('td');
             gameIdTd.textContent = bet.gameId;
+            gameIdTd.id = `gameId-${bet.gameId}`;  // Ajout d'un ID unique
             tr.appendChild(gameIdTd);
-
+        
             const betAmountTd = document.createElement('td');
             betAmountTd.textContent = bet.bet_amount;
             tr.appendChild(betAmountTd);
-
+        
             const betTeamIdTd = document.createElement('td');
             betTeamIdTd.textContent = bet.bet_teamId;
             tr.appendChild(betTeamIdTd);
-
+        
             const betStatusTd = document.createElement('td');
             betStatusTd.textContent = bet.bet_status;
             tr.appendChild(betStatusTd);
-
+        
             const betTimeTd = document.createElement('td');
-            betTimeTd.textContent = bet.bet_time;
+            betTimeTd.textContent = formatDate(bet.bet_time);
             tr.appendChild(betTimeTd);
-
+        
+            // Colonne action avec bouton
+            const actionTd = document.createElement('td');
+            const button = document.createElement('button');
+            button.textContent = 'Détails';
+            button.classList.add('Button');
+            button.dataset.gameId = bet.gameId; // Stocker le gameId dans un attribut data
+            button.onclick = function () { AfficherPopupGame(bet.gameId); };
+            actionTd.appendChild(button);
+            tr.appendChild(actionTd);
+        
             tbody.appendChild(tr);
         });
-
+        
     } catch (error) {
         console.error('Erreur:', error);
+    }
+}
+
+
+async function AfficherPopupGame(gameId) {
+    try {
+        const popup = document.getElementById("popupGame");
+        const popupText = document.getElementById("popupGameId");
+        const popupDetails = document.getElementById("popupGameDetails");
+
+        if (!popup || !popupText || !popupDetails) {
+            console.error("❌ Erreur : popup non trouvé !");
+            return;
+        }
+
+        // Réinitialiser le contenu précédent
+        popupDetails.innerHTML = "";
+        popupText.textContent = `Game ID: ${gameId}`;
+        popup.style.display = "block";
+
+        // Récupération des détails du match
+        const matchData = await fetchMatchDetails(gameId);
+
+        if (!matchData) {
+            console.error("❌ Erreur : Aucune donnée de match trouvée !");
+            return;
+        }
+
+        // Séparer les équipes (100 pour les alliés, 200 pour les ennemis)
+        const allies = matchData.info.participants.filter(p => p.teamId === 100);
+        const enemies = matchData.info.participants.filter(p => p.teamId === 200);
+
+        const teamHTML = (team, isAlly) =>
+            `<div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                ${team.map(participant => {
+                    const { kills, deaths, assists, kda } = calculatePlayerStats(participant);
+                    const kdaColor = getKDAColor(kda);
+                    const itemsHTML = [
+                        participant.item0, participant.item1, participant.item2,
+                        participant.item3, participant.item4, participant.item5
+                    ]
+                        .map(itemId => itemId ? getItemIcon(itemId) : '<div style="width:30px;height:30px;border:1px solid black;margin:2px;"></div>') // Si pas d'item, afficher une box vide
+                        .join('');
+
+                    return `
+                        <div style="border: 1px solid ${isAlly ? "green" : "red"}; border-radius: 10px; padding: 5px; margin-right: 30px; margin-left: 30px; text-align: center; width: 150px;">
+                            
+                            <strong>${participant.championName}</strong>
+                            <strong>${participant.riotIdGameName}${participant.riotIdTagline}</strong>
+                            <br>${getChampionIcon(participant.championName)}
+                            <br><strong>KDA:</strong> <span style="color: ${kdaColor};">${kda}</span>
+                            <br><strong>Lane:</strong> ${participant.teamPosition || "Non spécifiée"}
+                            <br>Kills: ${participant.kills}, Deaths: ${participant.deaths}, Assists: ${participant.assists}
+                            <br><strong>Items :</strong>
+                            <div style="display: flex; flex-wrap: wrap; margin-top: 5px;">${itemsHTML}</div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>`;
+
+        // Mettre à jour uniquement la zone de détails avec les équipes
+        popupDetails.innerHTML = `
+            <div>
+                <div><strong>Team 100</strong>${teamHTML(allies, true)}</div>
+                <div><strong>Team 200</strong>${teamHTML(enemies, false)}</div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error("❌ Erreur:", error);
+    }
+}
+
+
+// Fonction pour fermer le popup
+function FermerPopupGame() {
+    document.getElementById("popupGame").style.display = "none";
+}
+
+
+
+
+
+async function RechercheHistorique() {
+
+    gamePuuid = localStorage.getItem("gamePuuid") || "Aucun Puuid";
+    gameName = localStorage.getItem("gameName") || "Inconnu";
+    tagLine = localStorage.getItem("tagLine") || "Aucune tagline";
+
+    if (!gamePuuid) {
+        alert("Veuillez d'abord rechercher un summoner !");
+        return;
+    }
+    historiqueInfo.innerHTML = '<p>Chargement des données...</p>';
+
+    const kdaAveragesAlly = {};
+    const kdaAveragesEnemy = {};
+    const laneStatsAlly = initializeLaneStats();
+    const laneStatsEnemy = initializeLaneStats();
+
+    const count = 10;
+
+    const url = `http://localhost:5000/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
+
+    try {
+        const matchIds = await fetchMatchHistory(gamePuuid, count);
+        console.log('Match IDs reçus :', matchIds);
+
+        const matches = [];
+
+        for (let i = 0; i < matchIds.length; i++) {
+            const matchId = matchIds[i];
+
+            // Récupération des détails du match
+            const matchData = await fetchMatchDetails(matchId);
+
+            // Récupération de la timeline du match
+            const timelineData = await fetchTimeline(matchId);
+
+            matches.push({ matchData, timelineData });
+
+            if ((i + 1) % 20 === 0) {
+                console.log("Pause de 1 seconde pour respecter la limite d'API...");
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+        }
+
+        console.log('Détails des matchs reçus :', matches);
+
+        const matchDetailsHTML = await Promise.all(matches.map(async ({ matchData, timelineData }) => {
+            const player = matchData.info.participants.find((p) => p.puuid === gamePuuid);
+            const championIconHTML = getChampionIcon(player.championName);
+
+            // Calcul du KDA global
+            const { kills: playerkills, deaths: playerdeaths, assists: playerassists, kda: playerkda } = calculatePlayerStats(player);
+
+            const kdaColor = getKDAColor(playerkda);
+
+            const itemsHTML = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5]
+                .map((itemId) => itemId ? getItemIcon(itemId) : '<div style="width:30px;height:30px;border:1px solid black;margin:2px;"></div>')
+                .join('');
+
+            const sumonnerSpell1 = player.summoner1Id;
+            const Summoner1Name = await getSummonerByKey(sumonnerSpell1);
+            const Sumonner1Icon = await getSummonerIcon(Summoner1Name);
+
+            const sumonnerSpell2 = player.summoner2Id;
+            const Summoner2Name = await getSummonerByKey(sumonnerSpell2);
+            const Sumonner2Icon = await getSummonerIcon(Summoner2Name);
+
+            // Séparer les joueurs en deux équipes
+            const allies = matchData.info.participants.filter((p) => p.teamId === player.teamId);
+            const enemies = matchData.info.participants.filter((p) => p.teamId !== player.teamId);
+
+            const teamHTML = (team, isAlly) =>
+                `<div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                    ${team
+                        .map((participant) => {
+                            const { kills: participantkills, deaths: participantdeaths, assists: participantassists, kda: participantkda } = calculatePlayerStats(participant);
+
+                            // Détermination de la couleur du KDA avec la fonction getKDAColor
+
+                            const kdaColor = getKDAColor(participantkda);
+                            // Récupérer les items du joueur
+                            const itemsHTML = [
+                                participant.item0, participant.item1, participant.item2,
+                                participant.item3, participant.item4, participant.item5
+                            ]
+                                .map((itemId) => itemId ? getItemIcon(itemId) : '<div style="width:30px;height:30px;border:1px solid black;margin:2px;"></div>')
+                                .join('');
+
+                            return `
+                                <div style="border: 1px solid ${isAlly ? "green" : "red"}; border-radius: 10px; padding: 10px; margin: 5px; text-align: center; width: 150px;">
+                                    <strong>${participant.championName}</strong>
+                                    <br>${getChampionIcon(participant.championName)}
+                                    <br><strong>KDA:</strong> <span style="color: ${kdaColor};">${participantkda}</span>
+                                    
+                                    <br><strong>Lane:</strong> ${participant.teamPosition || "Non spécifiée"}
+                                    <br>Kills: ${participant.kills}, Deaths: ${participant.deaths}, Assists: ${participant.assists}
+                                    <br><strong>Items :</strong>
+                                    <div style="display: flex; flex-wrap: wrap; margin-top: 10px;">${itemsHTML}</div>
+                                </div>
+                            `;
+                        })
+                        .join("")}
+                </div>`;
+
+            // Récupération des stats à 10 minutes pour chaque joueur
+            const participantStatsHTML = matchData.info.participants
+                .map((participant) => {
+                    const stats = getStatsAtTime(timelineData, participant.participantId, 600); // 600 secondes = 10 minutes
+                    const { kills, deaths, assists, kda } = calculatePlayerStats(participant);
+                    const kdaColor = getKDAColor(kda);
+                    const isAlly = participant.teamId === player.teamId;
+                    // Remplir les statistiques dans le tableau selon la lane
+                    const lane = participant.teamPosition || "Non spécifiée";
+                    if (isAlly) {
+                        if (laneStatsAlly[lane]) {
+                            laneStatsAlly[lane].KILL.push(stats.kills);
+                            laneStatsAlly[lane].DEATH.push(stats.deaths);
+                            laneStatsAlly[lane].ASSIST.push(stats.assists);
+                        }
+                    }
+                    else if (!isAlly) {
+                        if (laneStatsEnemy[lane]) {
+                            laneStatsEnemy[lane].KILL.push(stats.kills);
+                            laneStatsEnemy[lane].DEATH.push(stats.deaths);
+                            laneStatsEnemy[lane].ASSIST.push(stats.assists);
+                        }
+                    }
+
+                    for (const lane in laneStatsAlly) {
+
+                        // Calcul des moyennes pour les alliés
+                        const ally = {
+                            kills: calculateAverageTableau(laneStatsAlly[lane].KILL),
+                            deaths: calculateAverageTableau(laneStatsAlly[lane].DEATH),
+                            assists: calculateAverageTableau(laneStatsAlly[lane].ASSIST)
+                        };
+
+                        const { kills: AverageAllykills, deaths: AverageAllydeaths, assists: AverageAllyassists, kda: AveragesAllyKDA } = calculatePlayerStats(ally);
+                        kdaAveragesAlly[lane] = AveragesAllyKDA;
+
+                        // Calcul des moyennes pour les ennemis
+                        const enemy = {
+                            kills: calculateAverageTableau(laneStatsEnemy[lane].KILL),
+                            deaths: calculateAverageTableau(laneStatsEnemy[lane].DEATH),
+                            assists: calculateAverageTableau(laneStatsEnemy[lane].ASSIST)
+                        };
+
+                        const { kills: AverageEnemykills, deaths: AverageEnemydeaths, assists: AverageEnemyassists, kda: AveragesEnemykda } = calculatePlayerStats(enemy);
+                        kdaAveragesEnemy[lane] = AveragesEnemykda;
+                    }
+
+                    return `
+                        <div style="margin-bottom: 5px;">
+                            <strong>Participant ID :</strong> ${participant.participantId} <br>
+                            <strong>Lane :</strong> ${participant.teamPosition || "Non spécifiée"} <br>
+                            <strong>Champion :</strong> ${participant.championName} ${getChampionIcon(participant.championName)}<br>
+                        </div>
+                    `;
+                })
+                .join('');
+            const borderColor = player.win ? "green" : "red";
+
+            return `<div id="match-container" class="match-container ${player.win ? 'win' : 'lose'}">
+                        <div id="match-container10" class="match-container10">
+                            <div id="match-container2" class="match-container2">
+                                <div id="match-gamemode" class="match-gamemode"> Mode de jeu : ${matchData.info.gameMode} </div>
+                                <div id="match-victoire" class="match-victoire"> ${player.win ? 'Victoire' : 'Défaite'} </div>
+                            </div>
+
+                            <div id="match-container3" class="match-container3">
+
+                                <div id="match-container4" class="match-container4">
+                                    <div id="match-champion" class="match-champion"> ${championIconHTML} </div>
+                                    <div id="match-sumonnericon1" class="match-sumonnericon"> ${Sumonner1Icon}</div>
+                                    <div id="match-sumonnericon2" class="match-sumonnericon"> ${Sumonner2Icon} </div>
+                                    <div id="match-kda" class="match-kda"> ${playerkills} / ${playerdeaths} / ${playerassists} </div>
+                                    <div id="kda-color" class="kda-${kdaColor}">${playerkda} </div>
+                                </div>
+
+                                <div id="match-container5" class="match-container5">
+                                    <div id="match-item" class="match-item">${itemsHTML}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="match-container20" class="match-container20">
+                            <details class="match-details">
+                                <summary>Statistiques détaillées des équipes</summary>
+                                <div>
+                                    <strong>Équipe Alliée :</strong>
+                                    ${teamHTML(allies, true)}
+                                    <hr>
+                                    <strong>Équipe Adverse :</strong>
+                                    ${teamHTML(enemies, false)}
+                                </div>
+                            </details>
+                        </div>
+                    </div>`;
+
+        }));
+
+        document.getElementById('historiqueInfo').innerHTML = `
+            <h3>Détails des ${matches.length} dernières parties :</h3>
+            <ul style="list-style-type: none; padding: 0;">${matchDetailsHTML.join('')}</ul>
+        `;
+        document.getElementById('10MinClassement').innerHTML += `
+            <hr>
+            <h3>Moyennes des KDA par lane a 10min de jeu :</h3>
+            <div>
+                <strong>Alliés :</strong>
+                <ul>
+                    ${Object.entries(kdaAveragesAlly)
+                        .map(([lane, kda]) => `<li>${lane} : ${kda}</li>`)
+                        .join("")}
+                </ul>
+                <strong>Ennemis :</strong>
+                <ul>
+                    ${Object.entries(kdaAveragesEnemy)
+                        .map(([lane, kda]) => `<li>${lane} : ${kda}</li>`)
+                        .join("")}
+                </ul>
+            </div>
+        `;
+        // Affichage du tableau des statistiques pour chaque lane
+        console.log('Stats par lane alliés:', laneStatsAlly);
+        console.log('Stats par lane énnemis:', laneStatsEnemy);
+        console.log("Moyennes des KDA des alliés :", kdaAveragesAlly);
+        console.log("Moyennes des KDA des ennemis :", kdaAveragesEnemy);
+
+    } catch (error) {
+        console.error('Erreur :', error);
+        alert('Erreur lors de l’envoi de la requête !');
     }
 }
 

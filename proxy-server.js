@@ -585,7 +585,6 @@ app.post('/update-game', (req, res) => {
     });
 });
 
-
 app.post('/update-bets', (req, res) => {
     // Étape 1 : Chercher les paris en statut "pending"
     const getPendingBetsQuery = `

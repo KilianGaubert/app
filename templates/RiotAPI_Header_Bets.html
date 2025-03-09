@@ -4,7 +4,7 @@
         <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
     <button id="Ajout" onclick="RecherchePartie('BestGameInfo')" class="Button">Joueur parier</button>
     </div>
-    <div id="Match_Info" class="Match_Info">
+    <div id="Match_Bets" class="Match_Bets">
         <div id="betsInfo" class="betsInfo">
             <div id="BestGameInfo" class="BestGameInfo">
             </div>            
@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div id="historiqueInfo" class="historiqueInfo">
+        <div id="BetsBigInfo" class="BetsBigInfo">
             <h1>Liste des bets</h1>
             <table id="joueursTable">
                 <thead>
@@ -26,6 +26,7 @@
                         <th>bet_teamId</th>
                         <th>bet_status</th>
                         <th>bet_time</th>
+                        <th>check_game</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,3 +49,12 @@
         </ul>
     </div>
 </div>
+
+<div id="popupGame" style="display: none;">
+    <div id="popupGameContent">
+        <span id="closePopup" onclick="FermerPopupGame()">❌</span>
+        <p id="popupGameId"></p>
+        <div id="popupGameDetails"></div>
+    </div>
+</div>
+
