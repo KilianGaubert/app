@@ -528,7 +528,7 @@ app.post('/ajouter-game', (req, res) => {
 
 
 app.post('/update-game', (req, res) => {
-    console.log('Données reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
+    console.log('Match reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
 
     // Extraire les données envoyées
     const { gameId, gameEndTime, gameStatus, winnerTeamId } = req.body;
