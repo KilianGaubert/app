@@ -159,7 +159,7 @@ app.get('/proxy/lol/spectator/v5/active-games/by-summoner/:gamePuuid', async (re
     }
 });
 
-// Route pour obtenir l'historique des parties à partir du PUUID avec un paramètre count
+// Route pour obtenir l'historique des partie à partir du PUUID avec un paramètre count
 app.get('/proxy/lol/match/v5/matches/by-puuid/:puuid', async (req, res) => {
     const { puuid } = req.params;
     const { count = 10 } = req.query; // Par défaut, récupère 10 parties si count n'est pas spécifié
