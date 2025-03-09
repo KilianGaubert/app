@@ -591,8 +591,6 @@ async function RecherchePartie(Ouca) {
             alert("Aucune partie en cours pour ce summoner.");
             return null;
         }
-
-        if (!response.ok) throw new Error("Erreur lors de la récupération des données de la partie en cours !");
         
         const spectatorData = await response.json();
         if (!spectatorData) return;
@@ -1005,13 +1003,13 @@ async function Bets(ResultatParié) {
         }
 
         const betAmount = document.getElementById("BetsPrice")?.value;
-        if (!betAmount) {
+        if (!betAmount || betAmount == 0) {
             alert('Veuillez entrer un montant de pari valide.');
             return;
         }
 
         const BetsDetails = {
-            gamePuuid: "-prqPWGkcMKQa17zifBRuowuf2X2dHssiQ93wca4tUIjfVigDEx6RhdhvYDJVyye4WGPV6Cb5QLOAA",
+            gamePuuid: "Ba913pscvywlXBtPlzsRaO56D65g5GZLT7jBfKt7OieKP_5LCgHwab1EkpN-Pm9nxqb7xumlByd61w",
             gameId: spectatorData.gameId,
             bet_amount: betAmount,
             bet_teamId: bet_teamId, // Mise à jour en fonction du résultat
@@ -1023,15 +1021,23 @@ async function Bets(ResultatParié) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(BetsDetails)
             });
+        
             const result = await response.json();
-            console.log("Bets Ajouté");
 
+            if (!response.ok) {
+                alert(result.message);
+                throw new Error(result.message || `Erreur HTTP: ${response.status}`);
+            }
+            alert(result.message);
+            console.log(result.message);
+        
             // Appel à UpdateClassementBets après l'ajout du pari
             UpdateClassementBets();
-
+        
         } catch (error) {
-            console.error(`Probleme Bets`, error);
+            console.error(error);
         }
+        
 
     } catch (error) {
         console.error("Erreur :", error);

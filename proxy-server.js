@@ -49,25 +49,6 @@ app.get('/RiotAPI_Masteries', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Masteries.html'));
 });
 
-function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
-    const connection = mysql.createConnection({
-        host: host,
-        user: utilisateur,
-        password: motDePasse,
-        database: baseDeDonnees
-    });
-
-    connection.connect((err) => {
-        if (err) {
-            console.error('Erreur lors de la connexion :', err);
-            return null;
-        }
-        console.log('Connexion réussie à la base de données.');
-    });
-
-    return connection;
-}
-
 // Fonction utilitaire pour faire une requête externe
 async function fetchRiotAPI(url) {
     try {
@@ -148,14 +129,9 @@ app.get('/proxy/lol/spectator/v5/active-games/by-summoner/:gamePuuid', async (re
     try {
         const data = await fetchRiotAPI(url);
 
-        if (!data) {
-        res.status(404).json({ error: 'Aucune partie en cours pour ce summoner' });
-        }
-
         res.json(data);
     } catch (error) {
-
-        res.status(500).json({ error: 'Erreur lors de la récupération des données de la partie en cours' });
+        res.status(404).json({ error: 'Erreur lors de la récupération des données de la partie en cours' });
     }
 });
 
@@ -785,6 +761,24 @@ app.get('/get-bets_all', (req, res) => {
     });
 });
 */
+function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
+    const connection = mysql.createConnection({
+        host: host,
+        user: utilisateur,
+        password: motDePasse,
+        database: baseDeDonnees
+    });
+
+    connection.connect((err) => {
+        if (err) {
+            console.error('Erreur lors de la connexion :', err);
+            return null;
+        }
+        console.log('Connexion réussie à la base de données.');
+    });
+
+    return connection;
+}
 
 const db = ConnexionBDD(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 

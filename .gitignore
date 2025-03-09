@@ -1,4 +1,1 @@
-# Ignore les dépendances Node.js
-node_modules/
-# Ignore les fichiers de configuration
 .env

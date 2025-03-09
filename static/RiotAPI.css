@@ -16,7 +16,6 @@ Button:hover {
     padding: 10px;
     border-radius: 4px;
     width: 100%;
-    margin-top: 10px;
 }
 
 #betsInfo{
@@ -173,6 +172,7 @@ Button:hover {
 }
 
 .Match_Info {
+    display: flex;
     margin-top: 10px;
     text-align: center;
     flex-direction: row; /* Organise les éléments en colonne */
