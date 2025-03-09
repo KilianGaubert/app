@@ -1,5 +1,4 @@
 # Ignore les dépendances Node.js
 node_modules/
-static/data_riot/
 # Ignore les fichiers de configuration
 .env
