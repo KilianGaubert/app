@@ -3,8 +3,3 @@ node_modules/
 static/data_riot/
 # Ignore les fichiers de configuration
 .env
-.DS_Store
-
-# Ignore les fichiers générés
-*.log
-*.cache
