@@ -58,15 +58,16 @@ async function fetchRiotAPI(url) {
                 'X-Riot-Token': RIOT_API_TOKEN, // Utilisez la variable globale
             }
         });
-        if (!response.ok) {
-            throw new Error(`Erreur API Riot : ${response.status}`);
-        }
         return await response.json();
-    } catch (error) {
+    } 
+    
+    catch (error) {
         console.error('Erreur lors de la requête API Riot:', error.message);
         throw error;
     }
 }
+
+//RIOT//
 
 // Route pour obtenir le PUUID à partir du gameName et du tagLine
 app.get('/proxy/riot/account/v1/accounts/by-riot-id/:gameName/:tagLine', async (req, res) => {
@@ -77,22 +78,20 @@ app.get('/proxy/riot/account/v1/accounts/by-riot-id/:gameName/:tagLine', async (
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération du PUUID' });
+        res.status(500).json({ message: 'Erreur API : Récupération du PUUID', gameName, tagLine });
     }
 });
 
 // Route pour obtenir les informations du compte Riot à partir du PUUID
 app.get('/proxy/riot/account/v1/accounts/by-puuid/:puuid', async (req, res) => {
     const { puuid } = req.params;
-
     const url = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`;
     
     try {
         const data = await fetchRiotAPI(url); // Utilisation de fetchRiotAPI pour l'appel API
         res.json(data);
     } catch (error) {
-        console.error('Erreur lors de la récupération des informations du compte Riot:', error.message);
-        res.status(500).json({ error: 'Erreur lors de la récupération des informations du compte Riot' });
+        res.status(500).json({ message: 'Erreur API : Récupération des informations du compte Riot', puuid });
     }
 });
 
@@ -105,7 +104,7 @@ app.get('/proxy/lol/summoner/v4/summoners/by-puuid/:puuid', async (req, res) => 
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des données du summoner' });
+        res.status(500).json({ message: 'Erreur API : Récupération des données du summoner', puuid });
     }
 });
 
@@ -118,7 +117,19 @@ app.get('/proxy/lol/league/v4/entries/by-summoner/:summonerId', async (req, res)
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des données de classement' });
+        res.status(500).json({ message: 'Erreur API : Récupération des données de classement', summonerId });
+    }
+});
+
+app.get('/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/:puuid', async (req, res) => {
+    const { puuid } = req.params;
+    const url = `https://euw1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}`;
+
+    try {
+        const data = await fetchRiotAPI(url);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur API : Récupération des masteries du summoner' });
     }
 });
 
@@ -128,26 +139,23 @@ app.get('/proxy/lol/spectator/v5/active-games/by-summoner/:gamePuuid', async (re
 
     try {
         const data = await fetchRiotAPI(url);
-
         res.json(data);
     } catch (error) {
-        res.status(404).json({ error: 'Erreur lors de la récupération des données de la partie en cours' });
+        res.status(500).json({ message: 'Erreur API : Récupération des données de la partie en cours', gamePuuid });
     }
 });
 
 // Route pour obtenir l'historique des partie à partir du PUUID avec un paramètre count
 app.get('/proxy/lol/match/v5/matches/by-puuid/:puuid', async (req, res) => {
     const { puuid } = req.params;
-    const { count = 10 } = req.query; // Par défaut, récupère 10 parties si count n'est pas spécifié
-
+    const { count = 10 } = req.query;
     const url = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${encodeURIComponent(count)}`;
 
     try {
         const data = await fetchRiotAPI(url); // Utilisation de fetchRiotAPI
         res.json(data);
     } catch (error) {
-        console.error('Erreur lors de la récupération de l’historique des parties:', error.message);
-        res.status(500).json({ error: 'Erreur lors de la récupération de l’historique des parties' });
+        res.status(500).json({ message: 'Erreur API : Récupération de l’historique des parties', puuid });
     }
 });
 
@@ -158,8 +166,9 @@ app.get('/proxy/lol/match/v5/matches/:matchId', async (req, res) => {
     try {
         const data = await fetchRiotAPI(url);
         res.json(data);
+
     } catch (error) {
-        res.status(200).json({ error: 'Match non existant ou encore en cours' });
+        res.status(500).json({ message: 'Erreur API : Récupération du match ', matchId });
     }
 });
 
@@ -172,39 +181,13 @@ app.get('/proxy/lol/match/v5/matches/:matchId/timeline', async (req, res) => {
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des détails du match' });
+        res.status(500).json({ message: 'Erreur API : Récupération des détails du match', matchId });
     }
 });
 
-// Route pour obtenir les détails d’un joueur à partir du puuid
-app.get('/proxy/riot/account/v1/accounts/by-puuid/:puuid', async (req, res) => {
-    const { puuid } = req.params;
-    const url = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`;
+//BDD JOUEURS//
 
-    try {
-        const data = await fetchRiotAPI(url);
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des détails du summoner' });
-    }
-});
-
-app.get('/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/:puuid', async (req, res) => {
-    const { puuid } = req.params;
-    const url = `https://euw1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}`;
-
-    try {
-        const data = await fetchRiotAPI(url);
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des détails du summoner' });
-    }
-});
-
-app.post('/ajouter-summoner', (req, res) => {
-    console.log('Données reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
-
-    // Extraire les données envoyées
+app.post('/ajouter-joueurs', (req, res) => {
     const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints } = req.body;
 
     // Vérifie si gamePuuid est bien présent dans la requête
@@ -218,11 +201,11 @@ app.post('/ajouter-summoner', (req, res) => {
     }
 
     // Vérifier si le gamePuuid existe déjà dans la base de données
-    const checkSummonerQuery = 'SELECT * FROM joueurs WHERE gamePuuid = ?';
-    db.query(checkSummonerQuery, [gamePuuid], (err, results) => {
+
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+
         if (err) {
-            console.error('❌ Erreur de requête:', err);
-            return res.status(500).json({ message: 'Erreur interne lors de la vérification du summoner.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         // Si le gamePuuid existe déjà, retourner une erreur
@@ -230,41 +213,37 @@ app.post('/ajouter-summoner', (req, res) => {
             return res.status(400).json({ message: 'Le summoner avec ce gamePuuid existe déjà dans la base de données.' });
         }
 
-        // Si le gamePuuid n'existe pas, insérer les données dans la base de données
-        const insertQuery = 'INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, \`rank\`, leaguePoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-        db.query(insertQuery, [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints], (err, results) => {
-            if (err) {
-                console.error('❌ Erreur d\'insertion dans la base de données:', err);
-                return res.status(500).json({ message: 'Erreur lors de l\'ajout du summoner.' });
-            }
+    db.query('INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, \`rank\`, leaguePoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
 
-            // Retourner une réponse après avoir ajouté le summoner
-            res.status(200).json({ message: '✅ Summoner ajouté avec succès !' });
+        res.status(200).json('✅ Summoner ajouté avec succès !');
+
         });
     });
 });
 
-app.delete('/SupprimerJoueur/:gamePuuid', (req, res) => {
+app.delete('/supprimer-joueurs', (req, res) => {
     const gamePuuid = req.params.gamePuuid;
 
     // Requête SQL pour supprimer un joueur
-    const sql = 'DELETE FROM joueurs WHERE gamePuuid = ?';
-    db.query(sql, [gamePuuid], (err, result) => {
+    db.query('DELETE FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, result) => {
+
         if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Erreur lors de la suppression du joueur' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
-        if (result.affectedRows > 0) {
-            res.status(200).json({ message: 'Joueur supprimé avec succès' });
-        } else {
-            res.status(404).json({ message: 'Joueur non trouvé' });
+        if (result.affectedRows === 0) {  // Correction ici
+            return res.status(404).json({ message: 'Joueur non trouvé' });
         }
+
+        res.status(200).json({ message: 'Joueur supprimé avec succès' });
+
     });
 });
 
-app.post('/update-summoner', (req, res) => {
-    console.log('🔄 Mise à jour des données reçues:', req.body);
+app.post('/maj-joueurs', (req, res) => {
 
     const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints } = req.body;
 
@@ -272,17 +251,15 @@ app.post('/update-summoner', (req, res) => {
         return res.status(400).json({ message: '❌ gamePuuid manquant' });
     }
 
-        // Vérifie si les autres informations sont présentes (facultatif, mais c'est une bonne pratique)
     if (!gameName || !tagLine || !summonerID || !level || !profileIconId) {
         return res.status(400).json({ message: 'Des informations sont manquantes' });
     }
 
     // Vérifier si le gamePuuid existe déjà
-    const checkSummonerQuery = 'SELECT * FROM joueurs WHERE gamePuuid = ?';
-    db.query(checkSummonerQuery, [gamePuuid], (err, results) => {
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+        
         if (err) {
-            console.error('❌ Erreur SQL:', err);
-            return res.status(500).json({ message: 'Erreur interne lors de la vérification du summoner.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         if (results.length === 0) {
@@ -298,8 +275,7 @@ app.post('/update-summoner', (req, res) => {
 
         db.query(updateQuery, [gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints, gamePuuid], (err, results) => {
             if (err) {
-                console.error('❌ Erreur lors de la mise à jour:', err);
-                return res.status(500).json({ message: 'Erreur lors de la mise à jour du summoner.' });
+                return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
 
             res.status(200).json({ message: '✅ Summoner mis à jour avec succès !' });
@@ -307,51 +283,34 @@ app.post('/update-summoner', (req, res) => {
     });
 });
 
-app.get('/get-puuid', (req, res) => {
-    
-    if (!db) {
-        return res.status(500).json({ message: '❌ Erreur de connexion à la base de données.' });
-    }
+app.get('/recuperer-joueurs', (req, res) => {
 
-    // Sélectionner uniquement la colonne gamePuuid
-    const query = 'SELECT gamePuuid FROM joueurs';
-    
-    db.query(query, (err, results) => {
+    db.query('SELECT * FROM joueurs', (err, results) => {
+
         if (err) {
-            console.error('❌ Erreur lors de la récupération des PUUIDs:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des PUUIDs' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
-
-        // Extraire uniquement les gamePuuid sous forme de tableau
-        const puuids = results.map(row => row.gamePuuid);
-
-        res.json(puuids); // Retourner un tableau contenant seulement les gamePuuid
-    });
-});
-
-app.get('/get-joueurs', (req, res) => {
-    
-    if (!db) {
-        // Si la connexion échoue, renvoie une erreur
-        return res.status(500).json({ message: 'Erreur de connexion à la base de données.' });
-    }
-
-    const query = 'SELECT * FROM joueurs';
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error('❌ Erreur lors de la récupération des joueurs:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des joueurs' });
-        }
-
         // Retourner les résultats en format JSON
         res.json(results);
     });
 });
 
-app.post('/ajouter-bets', (req, res) => {
-    console.log('Données reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
+app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
+    
+    db.query('SELECT gamePuuid FROM joueurs', (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
 
-    // Extraire les données envoyées
+        const data = data.map(row => row.gamePuuid);
+        res.json(results);
+
+    });
+});
+
+//BDD BETS//
+
+app.post('/ajouter-bets', (req, res) => {
     const { gamePuuid, gameId, bet_amount, bet_teamId } = req.body;
 
     // Vérifie si les autres informations sont présentes
@@ -363,11 +322,10 @@ app.post('/ajouter-bets', (req, res) => {
     const modifiedGameId = `EUW1_${gameId}`;
     
     // Vérification si le joueur existe dans la table joueurs
-    const checkPlayerQuery = 'SELECT * FROM joueurs WHERE gamePuuid = ?';
-    db.query(checkPlayerQuery, [gamePuuid], (err, results) => {
+
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
         if (err) {
-            console.error('❌ Erreur de vérification du joueur:', err);
-            return res.status(500).json({ message: 'Erreur interne lors de la vérification du joueur.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         if (results.length === 0) {
@@ -385,44 +343,36 @@ app.post('/ajouter-bets', (req, res) => {
         // Début d'une transaction SQL pour garantir la cohérence des données
         db.beginTransaction(err => {
             if (err) {
-                console.error('❌ Erreur lors du début de la transaction:', err);
-                return res.status(500).json({ message: 'Erreur interne.' });
+                return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
 
-            // Insérer le pari dans la table bets
-            const insertBetQuery = 'INSERT INTO bets (gamePuuid, gameId, bet_amount, bet_teamId) VALUES (?, ?, ?, ?)';
-            db.query(insertBetQuery, [gamePuuid, modifiedGameId, bet_amount, bet_teamId], (err, results) => {
+            db.query('INSERT INTO bets (gamePuuid, gameId, bet_amount, bet_teamId) VALUES (?, ?, ?, ?)', [gamePuuid, modifiedGameId, bet_amount, bet_teamId], (err, results) => {
                 if (err) {
-                    console.error('❌ Erreur d\'insertion du pari:', err);
                     return db.rollback(() => {
-                        res.status(500).json({ message: 'Erreur lors de l\'ajout du pari.' });
+                        res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
                     });
                 }
 
                 // Mettre à jour la balance du joueur
-                const updateBalanceQuery = 'UPDATE joueurs SET balance = balance - ? WHERE gamePuuid = ?';
-                db.query(updateBalanceQuery, [bet_amount, gamePuuid], (err, results) => {
+                db.query('UPDATE joueurs SET balance = balance - ? WHERE gamePuuid = ?', [bet_amount, gamePuuid], (err, results) => {
                     if (err) {
-                        console.error('❌ Erreur de mise à jour du solde:', err);
                         return db.rollback(() => {
-                            res.status(500).json({ message: 'Erreur lors de la mise à jour du solde du joueur.' });
+                            res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
                         });
                     }
 
                     // Ajouter une transaction dans la table transactions
-                    const insertTransactionQuery = 'INSERT INTO transactions (gamePuuid, transaction_type, amount) VALUES (?, ?, ?)';
-                    db.query(insertTransactionQuery, [gamePuuid, 'bet_deposit', bet_amount], (err, results) => {
+
+                    db.query('INSERT INTO transactions (gamePuuid, transaction_type, amount) VALUES (?, ?, ?)', [gamePuuid, 'bet_deposit', bet_amount], (err, results) => {
                         if (err) {
-                            console.error('❌ Erreur d\'ajout de la transaction:', err);
                             return db.rollback(() => {
-                                res.status(500).json({ message: 'Erreur lors de l\'ajout de la transaction.' });
+                                res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
                             });
                         }
 
                         // Valider la transaction SQL
                         db.commit(err => {
                             if (err) {
-                                console.error('❌ Erreur lors de la validation de la transaction:', err);
                                 return db.rollback(() => {
                                     res.status(500).json({ message: 'Erreur lors de la validation de la transaction.' });
                                 });
@@ -437,7 +387,106 @@ app.post('/ajouter-bets', (req, res) => {
     });
 });
 
-app.get('/get-bets', (req, res) => {
+app.post('/maj-bets', (req, res) => {
+    // Étape 1 : Chercher les paris en statut "pending"
+    const getPendingBetsQuery = `
+        SELECT b.bet_id, b.gamePuuid, b.bet_amount, b.bet_teamId, b.gameId, g.game_status, g.winner_team_id
+        FROM bets b
+        JOIN games g ON b.gameId = g.gameId
+        WHERE b.bet_status = 'pending' AND g.game_status = 'completed'
+    `;
+
+    db.query(getPendingBetsQuery, async (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
+
+        // Vérification qu'il y a des paris en attente
+        if (results.length === 0) {
+            return res.status(200).json({ message: 'Aucun pari en attente à traiter.' });
+        }
+        
+
+        // Étape 2 : Traiter chaque pari en attente
+        for (const bet of results) {
+            const { bet_id, gamePuuid, bet_amount, bet_teamId, gameId, game_status, winner_team_id } = bet;
+
+            // Étape 3 : Vérifier si le jeu est "completed"
+            if (game_status === 'completed') {
+                // Vérifier si l'équipe du joueur est la même que l'équipe gagnante
+                const betWon = bet_teamId === winner_team_id;
+
+                // Étape 4 : Mettre à jour le statut du pari (gagné ou perdu)
+                const updateBetQuery = `
+                    UPDATE bets
+                    SET bet_status = ?
+                    WHERE bet_id = ?;
+                `;
+                const newBetStatus = betWon ? 'won' : 'lost';
+                db.query(updateBetQuery, [newBetStatus, bet_id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Erreur avec la base de données' });
+                    }
+                });
+
+                // Étape 5 : Mettre à jour la balance du joueur si le pari a été gagné
+                db.query('SELECT balance FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Erreur avec la base de données' });
+                    }
+
+                    if (results.length === 0) {
+                        return res.status(400).json({ message: 'Joueur introuvable dans la base de données' });
+                    }
+
+                    const player = results[0];
+                    let newBalance;
+                    if (betWon) {
+                        // Double la mise du joueur en cas de victoire
+                        newBalance = player.balance + bet_amount * 2; // Ajout du gain
+
+                        // Ajouter une transaction pour la victoire
+                        const transactionQuery = `
+                            INSERT INTO transactions (gamePuuid, transaction_type, amount)
+                            VALUES (?, 'bet_win', ?);
+                        `;
+                        db.query(transactionQuery, [gamePuuid, bet_amount * 2], (err) => {
+                            if (err) {
+                                return res.status(500).json({ message: 'Erreur avec la base de données' });
+                            }
+                        });
+                    } else {
+                        // Si perdu, rien n'est ajouté à la balance
+                        newBalance = player.balance; // Pas de changement
+
+                        // Ajouter une transaction pour la perte
+                        const transactionQuery = `
+                            INSERT INTO transactions (gamePuuid, transaction_type, amount)
+                            VALUES (?, 'bet_lose', ?);
+                        `;
+                        db.query(transactionQuery, [gamePuuid, bet_amount], (err) => {
+                            if (err) {
+                                return res.status(500).json({ message: 'Erreur avec la base de données' });
+                            }
+                        });
+                    }
+
+                    // Mettre à jour la balance du joueur
+                    db.query('UPDATE joueurs SET balance = ? WHERE gamePuuid = ?', [newBalance, gamePuuid], (err) => {
+                        if (err) {
+                            return res.status(500).json({ message: 'Erreur avec la base de données' });
+                        }
+                    });
+                });
+            } else {
+                return res.status(400).json({ message: 'Le jeu n\'est pas terminé' });
+            }
+        }
+        res.status(200).json({ message: 'Mise à jour des paris terminée.' });
+    });
+});
+
+app.get('/recuperer-bets', (req, res) => {
     const getAllBetsQuery = `
         SELECT gamePuuid, gameId, bet_amount, bet_teamId, bet_status 
         FROM bets
@@ -445,8 +494,7 @@ app.get('/get-bets', (req, res) => {
 
     db.query(getAllBetsQuery, (err, results) => {
         if (err) {
-            console.error('❌ Erreur lors de la récupération des paris:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des paris.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         if (results.length === 0) {
@@ -457,29 +505,11 @@ app.get('/get-bets', (req, res) => {
     });
 });
 
-app.get('/get-games', (req, res) => {
-    // Requête pour récupérer les parties en statut "in_progress"
-    const getPendingGamesQuery = `SELECT gameId, game_status FROM games WHERE game_status = 'in_progress'`;
 
-    db.query(getPendingGamesQuery, (err, results) => {
-        if (err) {
-            console.error('❌ Erreur lors de la récupération des parties en attente:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des parties.' });
-        }
 
-        // Si aucune partie n'est trouvée, retourner une réponse vide mais avec un statut 200
-        if (results.length === 0) {
-            return res.status(200).json([]); // Pas d'erreur, juste aucune partie en attente
-        }
+//BDD GAMES//
 
-        // Retourner les résultats sous forme de réponse JSON
-        res.status(200).json(results);
-    });
-});
-
-app.post('/ajouter-game', (req, res) => {
-    console.log('Données reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
-
+app.post('/ajouter-games', (req, res) => {
     // Extraire les données envoyées
     const { gameId, gameStartTime } = req.body;
 
@@ -500,24 +530,20 @@ app.post('/ajouter-game', (req, res) => {
     const formattedGameStartTime = new Date(gameStartTime).toISOString().slice(0, 19).replace("T", " ");
 
     // Vérifier si le gameId existe déjà dans la base de données
-    const checkGameQuery = 'SELECT * FROM games WHERE gameId = ?';
-    db.query(checkGameQuery, [modifiedGameId], (err, results) => {
+    db.query('SELECT * FROM games WHERE gameId = ?', [modifiedGameId], (err, results) => {
         if (err) {
-            console.error('❌ Erreur de requête:', err);
-            return res.status(500).json({ message: 'Erreur interne lors de la vérification de la partie.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         // Si le gameId existe déjà, ne pas insérer et renvoyer un message de succès
         if (results.length > 0) {
-            return res.status(200).json({ message: '✅ La partie existe déjà dans la base de données.' });
+            return res.status(200).json({ message: 'La partie existe déjà dans la base de données.' });
         }
 
         // Si le gameId n'existe pas, insérer les données dans la base de données
-        const insertQuery = 'INSERT INTO games (gameId, game_start_time) VALUES (?, ?)';
-        db.query(insertQuery, [modifiedGameId, formattedGameStartTime], (err, results) => {
+        db.query('INSERT INTO games (gameId, game_start_time) VALUES (?, ?)', [modifiedGameId, formattedGameStartTime], (err, results) => {
             if (err) {
-                console.error('❌ Erreur d\'insertion dans la base de données:', err);
-                return res.status(500).json({ message: 'Erreur lors de l\'ajout de la partie.' });
+                return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
 
             // Retourner une réponse après avoir ajouté la partie
@@ -526,10 +552,7 @@ app.post('/ajouter-game', (req, res) => {
     });
 });
 
-
-app.post('/update-game', (req, res) => {
-    console.log('Match reçues:', req.body);  // Vérifie ce qui est reçu dans req.body
-
+app.post('/maj-games', (req, res) => {
     // Extraire les données envoyées
     const { gameId, gameEndTime, gameStatus, winnerTeamId } = req.body;
 
@@ -544,11 +567,10 @@ app.post('/update-game', (req, res) => {
     }
 
     // Vérifier si le gameId existe déjà dans la base de données
-    const checkGameQuery = 'SELECT * FROM games WHERE gameId = ?';
-    db.query(checkGameQuery, [gameId], (err, results) => {
+
+    db.query('SELECT * FROM games WHERE gameId = ?', [gameId], (err, results) => {
         if (err) {
-            console.error('❌ Erreur de requête:', err);
-            return res.status(500).json({ message: 'Erreur interne lors de la vérification de la partie.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         // Si le gameId n'existe pas, renvoyer un message d'erreur
@@ -575,8 +597,7 @@ app.post('/update-game', (req, res) => {
 
         db.query(updateGameQuery, [matchDetails.gameEndTime, matchDetails.gameStatus, matchDetails.winnerTeamId, gameId], (err, results) => {
             if (err) {
-                console.error('❌ Erreur lors de la mise à jour du jeu:', err);
-                return res.status(500).json({ message: 'Erreur lors de la mise à jour de la partie.' });
+                return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
 
             // Retourner une réponse après avoir mis à jour les informations du jeu
@@ -585,113 +606,29 @@ app.post('/update-game', (req, res) => {
     });
 });
 
-app.post('/update-bets', (req, res) => {
-    // Étape 1 : Chercher les paris en statut "pending"
-    const getPendingBetsQuery = `
-        SELECT b.bet_id, b.gamePuuid, b.bet_amount, b.bet_teamId, b.gameId, g.game_status, g.winner_team_id
-        FROM bets b
-        JOIN games g ON b.gameId = g.gameId
-        WHERE b.bet_status = 'pending' AND g.game_status = 'completed'
-    `;
+app.get('/recuperer-games', (req, res) => {
+    
+    // Requête pour récupérer les parties en statut "in_progress"
+    db.query(`SELECT gameId, game_status FROM games WHERE game_status = 'in_progress'`, (err, results) => {
 
-    db.query(getPendingBetsQuery, async (err, results) => {
         if (err) {
-            console.error('❌ Erreur lors de la récupération des paris en attente:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des paris.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
-        // Vérification qu'il y a des paris en attente
         if (results.length === 0) {
-            return res.status(200).json({ message: 'Aucun pari en attente à traiter.' });
-        }
-        
-
-        // Étape 2 : Traiter chaque pari en attente
-        for (const bet of results) {
-            const { bet_id, gamePuuid, bet_amount, bet_teamId, gameId, game_status, winner_team_id } = bet;
-
-            // Étape 3 : Vérifier si le jeu est "completed"
-            if (game_status === 'completed') {
-                // Vérifier si l'équipe du joueur est la même que l'équipe gagnante
-                const betWon = bet_teamId === winner_team_id;
-
-                // Étape 4 : Mettre à jour le statut du pari (gagné ou perdu)
-                const updateBetQuery = `
-                    UPDATE bets
-                    SET bet_status = ?
-                    WHERE bet_id = ?;
-                `;
-                const newBetStatus = betWon ? 'won' : 'lost';
-
-                db.query(updateBetQuery, [newBetStatus, bet_id], (err) => {
-                    if (err) {
-                        console.error(`❌ Erreur lors de la mise à jour du pari ${bet_id}:`, err);
-                    }
-                });
-
-                // Étape 5 : Mettre à jour la balance du joueur si le pari a été gagné
-                const playerBalanceQuery = 'SELECT balance FROM joueurs WHERE gamePuuid = ?';
-                db.query(playerBalanceQuery, [gamePuuid], (err, results) => {
-                    if (err) {
-                        console.error('❌ Erreur lors de la récupération du solde du joueur:', err);
-                        return;
-                    }
-
-                    if (results.length === 0) {
-                        console.error('❌ Joueur introuvable pour le gamePuuid:', gamePuuid);
-                        return;
-                    }
-
-                    const player = results[0];
-                    let newBalance;
-                    if (betWon) {
-                        // Double la mise du joueur en cas de victoire
-                        newBalance = player.balance + bet_amount * 2; // Ajout du gain
-
-                        // Ajouter une transaction pour la victoire
-                        const transactionQuery = `
-                            INSERT INTO transactions (gamePuuid, transaction_type, amount)
-                            VALUES (?, 'bet_win', ?);
-                        `;
-                        db.query(transactionQuery, [gamePuuid, bet_amount * 2], (err) => {
-                            if (err) {
-                                console.error(`❌ Erreur lors de l'ajout de la transaction pour le pari ${bet_id}:`, err);
-                            }
-                        });
-                    } else {
-                        // Si perdu, rien n'est ajouté à la balance
-                        newBalance = player.balance; // Pas de changement
-
-                        // Ajouter une transaction pour la perte
-                        const transactionQuery = `
-                            INSERT INTO transactions (gamePuuid, transaction_type, amount)
-                            VALUES (?, 'bet_lose', ?);
-                        `;
-                        db.query(transactionQuery, [gamePuuid, bet_amount], (err) => {
-                            if (err) {
-                                console.error(`❌ Erreur lors de l'ajout de la transaction pour le pari ${bet_id}:`, err);
-                            }
-                        });
-                    }
-
-                    // Mettre à jour la balance du joueur
-                    const updateBalanceQuery = 'UPDATE joueurs SET balance = ? WHERE gamePuuid = ?';
-                    db.query(updateBalanceQuery, [newBalance, gamePuuid], (err) => {
-                        if (err) {
-                            console.error(`❌ Erreur lors de la mise à jour de la balance du joueur ${gamePuuid}:`, err);
-                        }
-                    });
-                });
-            } else {
-                console.log(`Le jeu ${gameId} n'est pas terminé. Aucun changement pour ce pari.`);
-            }
+            return res.status(200).json([]);
         }
 
-        res.status(200).json({ message: 'Mise à jour des paris terminée.' });
+        // Retourner les résultats sous forme de réponse JSON
+        res.status(200).json(results);
     });
 });
 
-app.get('/get-bets_all', (req, res) => {
+
+
+//BDD AUTRES//
+
+app.get('/recuperer-classement', (req, res) => {
     // Requête SQL mise à jour pour récupérer le gameName et le tagLine des joueurs
     const getBetsQuery = `
         SELECT 
@@ -712,8 +649,7 @@ app.get('/get-bets_all', (req, res) => {
 
     db.query(getBetsQuery, (err, results) => {
         if (err) {
-            console.error('❌ Erreur lors de la récupération des paris:', err);
-            return res.status(500).json({ message: 'Erreur lors de la récupération des paris.' });
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
         if (results.length === 0) {
@@ -725,42 +661,8 @@ app.get('/get-bets_all', (req, res) => {
     });
 });
 
-/*app.post('/ajouter-participants', (req, res) => {
-    console.log('Données reçues:', req.body);
-
-    // Extraire les données
-    const { gameId, gamePuuid, teamId, championPlayed } = req.body;
-
-    // Vérification des données
-    if (!gameId || !gamePuuid || !teamId || !championPlayed) {
-        return res.status(400).json({ message: "Des informations sont manquantes" });
-    }
-
-    const checkGameQuery = 'SELECT gameId FROM games WHERE gameId = ?';
-
-    db.query(checkGameQuery, [gameId], (err, results) => {
-        if (err) {
-            console.error("❌ Erreur lors de la vérification de gameId :", err);
-            return res.status(500).json({ message: "Erreur serveur." });
-        }
-
-        if (results.length === 0) {
-            return res.status(400).json({ message: "gameId inexistant dans la table games" });
-        }
-
-        // Insérer le participant
-        const insertQuery = 'INSERT INTO participants (gameId, gamePuuid, teamId, championPlayed) VALUES (?, ?, ?, ?)';
-        db.query(insertQuery, [gameId, gamePuuid, teamId, championPlayed], (err, results) => {
-            if (err) {
-                console.error("❌ Erreur d'insertion :", err);
-                return res.status(500).json({ message: "Erreur lors de l'ajout du participant." });
-            }
-            res.status(200).json({ message: "✅ Participant ajouté avec succès !" });
-        });
-    });
-});
-*/
 function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
+
     const connection = mysql.createConnection({
         host: host,
         user: utilisateur,
@@ -770,12 +672,11 @@ function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
 
     connection.connect((err) => {
         if (err) {
-            console.error('Erreur lors de la connexion :', err);
+            console.error('Erreur lors de la connexion a la base de données :', err);
             return null;
         }
         console.log('Connexion réussie à la base de données.');
     });
-
     return connection;
 }
 

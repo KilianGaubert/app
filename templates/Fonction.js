@@ -186,9 +186,36 @@ function calculatePlayerStats(player) {
     return { kills, deaths, assists, kda };
 }
 
+async function callAPI(url, method, body = null) {
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: body ? JSON.stringify(body) : null,
+        });
+
+        // Si la réponse n'est pas OK (code HTTP 200-299)
+        if (!response.ok) {
+            const errorData = await response.json();  // Récupérer le message d'erreur depuis la réponse
+            return { success: false, message: errorData.message || 'Une erreur est survenue' };
+        }
+
+        // Si la réponse est OK, retourner les données JSON
+        const data = await response.json();
+        return { success: true, data };
+
+    } catch (error) {
+        // Gérer les erreurs réseau ou autres exceptions
+        console.error('Erreur lors de l\'appel API:', error);
+        return { success: false, message: 'Erreur lors de la communication avec le serveur.' };
+    }
+}
+
 // Fonction pour récupérer l'historique des matchs
 async function fetchMatchHistory(puuid, count) {
-    const url = `http://localhost:5000/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}?count=${encodeURIComponent(count)}`;
+    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}?count=${encodeURIComponent(count)}`;
     const response = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -201,7 +228,7 @@ async function fetchMatchHistory(puuid, count) {
 
 // Fonction pour récupérer les détails d'un match
 async function fetchMatchDetails(matchId) {
-    const matchUrl = `http://localhost:5000/proxy/lol/match/v5/matches/${matchId}`;
+    const matchUrl = `/proxy/lol/match/v5/matches/${matchId}`;
     const matchResponse = await fetch(matchUrl, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +241,7 @@ async function fetchMatchDetails(matchId) {
 
 // Fonction pour récupérer la timeline d'un match
 async function fetchTimeline(matchId) {
-    const timelineUrl = `http://localhost:5000/proxy/lol/match/v5/matches/${matchId}/timeline`;
+    const timelineUrl = `/proxy/lol/match/v5/matches/${matchId}/timeline`;
     const timelineResponse = await fetch(timelineUrl, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -260,7 +287,7 @@ function DemandePseudo() {
     const tagLineDiv = document.getElementById("tagLine");
 
     // URL pour récupérer le puuid
-    const puuidUrl = `http://localhost:5000/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    const puuidUrl = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
     fetch(puuidUrl, {
         method: 'GET',
@@ -278,7 +305,7 @@ function DemandePseudo() {
         localStorage.setItem("gamePuuid", gamePuuid);
 
         // URL pour récupérer les détails du summoner (niveau, etc.)
-        const summonerUrl = `http://localhost:5000/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
+        const summonerUrl = `/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
 
         return fetch(summonerUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
     })
@@ -300,7 +327,7 @@ function DemandePseudo() {
         tagLineDiv.innerHTML = `#${tagLine}`;
 
         const summonerId = summonerData.id;
-        const leagueUrl = `http://localhost:5000/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerId)}`;
+        const leagueUrl = `/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerId)}`;
         return fetch(leagueUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
     })
     .then(response => {
@@ -350,7 +377,7 @@ async function RechercheHistorique() {
 
     const count = 10;
 
-    const url = `http://localhost:5000/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
+    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
 
     try {
         const matchIds = await fetchMatchHistory(gamePuuid, count);
@@ -569,7 +596,7 @@ async function RecherchePartie(Ouca) {
 
     const gameName = document.getElementById("ResearchgameName").value;
     const tagLine = document.getElementById("ResearchtagLine").value;    // URL pour récupérer le puuid
-    const puuidUrl = `http://localhost:5000/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    const puuidUrl = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
     const response = await fetch(puuidUrl, {
         method: 'GET',
@@ -589,7 +616,7 @@ async function RecherchePartie(Ouca) {
     if (!gamePuuid) {
         alert("Veuillez d'abord rechercher un summoner !");
         return;
-    }    const url = `http://localhost:5000/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
+    }    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
 
     try {
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -709,7 +736,7 @@ async function RechercheMasteries() {
     }
 
     // URL pour récupérer les masteries du joueur
-    const url = `http://localhost:5000/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(gamePuuid)}`;
+    const url = `/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(gamePuuid)}`;
 
     try {
         const response = await fetch(url, {
@@ -750,7 +777,7 @@ async function RechercheMasteries() {
 async function UpdateClassement() {
     
     try {
-        const response = await fetch('http://localhost:5000/get-puuid');
+        const response = await fetch('/recuperer-joueurs-gamePuuid');
         if (!response.ok) throw new Error("Erreur lors de la récupération des PUUIDs !");
         const puuids = await response.json();
         console.log("Liste des PUUIDs récupérés :", puuids);
@@ -758,15 +785,15 @@ async function UpdateClassement() {
         // Exécuter les mises à jour pour chaque PUUID
         await Promise.all(
             puuids.map(async (gamePuuid) => {
-                const accountResponse = await fetch(`http://localhost:5000/proxy/riot/account/v1/accounts/by-puuid/${encodeURIComponent(gamePuuid)}`);
+                const accountResponse = await fetch(`/proxy/riot/account/v1/accounts/by-puuid/${encodeURIComponent(gamePuuid)}`);
                 const accountData = await accountResponse.json();
                 const gameName = accountData.gameName;
                 const tagLine = accountData.tagLine;
 
-                const summonerResponse = await fetch(`http://localhost:5000/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`);
+                const summonerResponse = await fetch(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`);
                 const summonerData = await summonerResponse.json();
 
-                const leagueResponse = await fetch(`http://localhost:5000/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerData.id)}`);
+                const leagueResponse = await fetch(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerData.id)}`);
                 const leagueData = await leagueResponse.json();
 
                 const summonerDetails = {
@@ -787,7 +814,7 @@ async function UpdateClassement() {
                     summonerDetails.leaguePoints = leagueData[0].leaguePoints;
                 }
 
-                await fetch('http://localhost:5000/update-summoner', {
+                await fetch('/maj-joueurs', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(summonerDetails)
@@ -798,7 +825,7 @@ async function UpdateClassement() {
         console.log("Mise à jour terminée !");
 
         // Récupérer les joueurs mis à jour
-        const joueursResponse = await fetch('http://localhost:5000/get-joueurs');
+        const joueursResponse = await fetch('/recuperer-joueurs');
         const joueurs = await joueursResponse.json();
 
         // Trier les joueurs par classement
@@ -838,7 +865,7 @@ function AjoutJoueurs() {
     const gameName = document.getElementById('ResearchgameName').value;
     const tagLine = document.getElementById('ResearchtagLine').value;
 
-    const url = `http://localhost:5000/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    const url = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
     fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
     .then(response => {
@@ -863,7 +890,7 @@ function AjoutJoueurs() {
         };
 
         // URL pour récupérer les détails du summoner (niveau, etc.)
-        const summonerUrl = `http://localhost:5000/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
+        const summonerUrl = `/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
 
         return fetch(summonerUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
             .then(response => response.json())
@@ -877,7 +904,7 @@ function AjoutJoueurs() {
                 console.log(summonerDetails.summonerID, summonerDetails.level);
 
                 // URL pour récupérer le classement du summoner
-                const leagueUrl = `http://localhost:5000/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`;
+                const leagueUrl = `/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`;
                 return fetch(leagueUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
                     .then(response => response.json())
                     .then(leagueData => {
@@ -896,7 +923,7 @@ function AjoutJoueurs() {
     })
     .then(summonerDetails => {
         // Envoi des données au backend pour les ajouter à la base de données
-        return fetch('http://localhost:5000/ajouter-summoner', {
+        return fetch('/ajouter-joueurs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(summonerDetails) // Envoyer les données dans un objet JSON
@@ -917,7 +944,7 @@ function AjoutJoueurs() {
 async function RecherchePartie2(gamePuuid) {
     if (!gamePuuid) return "Hors ligne"; // Si pas de puuid, on assume hors ligne
 
-    const url = `http://localhost:5000/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
+    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
 
     try {
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -934,7 +961,7 @@ async function RecherchePartie2(gamePuuid) {
 
 async function SupprimerJoueur(gamePuuid) {
     // Envoie une requête DELETE pour supprimer le joueur
-    const response = await fetch(`/SupprimerJoueur/${gamePuuid}`, {
+    const response = await fetch(`/supprimer-joueurs`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -958,20 +985,17 @@ async function Bets(ResultatParié) {
         return;
     }
 
-    const url = `http://localhost:5000/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
+    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
 
     try {
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
 
-        if (response.status === 404) {
+        if (!response.ok) {
             alert("Aucune partie en cours pour ce summoner.");
             return;
         }
 
-        if (!response.ok) throw new Error("Erreur lors de la récupération des données de la partie en cours !");
-
         const spectatorData = await response.json();
-        if (!spectatorData) return;
 
         const gameLengthInMinutes = spectatorData.gameLength / 60; // Convertir la durée en minutes
         if (gameLengthInMinutes > 40) {
@@ -993,7 +1017,7 @@ async function Bets(ResultatParié) {
         };
 
         // Ajouter la partie d'abord
-        await fetch('http://localhost:5000/ajouter-game', {
+        await fetch('/ajouter-games', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(gameDetails)
@@ -1023,7 +1047,7 @@ async function Bets(ResultatParié) {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/ajouter-bets', {
+            const response = await fetch('/ajouter-bets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(BetsDetails)
@@ -1056,7 +1080,7 @@ function UpdateBets() {
     return new Promise(async (resolve, reject) => {
         try {
             // Étape 1 : Récupérer les jeux en attente
-            const updateGamesResponse = await fetch('http://localhost:5000/get-games');
+            const updateGamesResponse = await fetch('/recuperer-games');
             if (!updateGamesResponse.ok) throw new Error('Erreur lors de la récupération des jeux en attente.');
 
             const pendingGames = await updateGamesResponse.json();
@@ -1067,7 +1091,7 @@ function UpdateBets() {
                     const matchId = game.gameId;
 
                     try {
-                        const matchDetailsResponse = await fetch(`http://localhost:5000/proxy/lol/match/v5/matches/${matchId}`);
+                        const matchDetailsResponse = await fetch(`/proxy/lol/match/v5/matches/${matchId}`);
                         const matchData = await matchDetailsResponse.json();
                         let winnerTeamId = matchData.info.teams[0].win ? 100 : 200;
 
@@ -1081,7 +1105,7 @@ function UpdateBets() {
                         console.log(matchDetails);
 
                         // Mise à jour de la base de données
-                        const updateResponse = await fetch('http://localhost:5000/update-game', {
+                        const updateResponse = await fetch('/maj-games', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(matchDetails)
@@ -1100,7 +1124,7 @@ function UpdateBets() {
             }
 
             // Étape 2 : Mise à jour des paris
-            const updateBetsResponse = await fetch('http://localhost:5000/update-bets', { method: 'POST' });
+            const updateBetsResponse = await fetch('/maj-bets', { method: 'POST' });
             if (!updateBetsResponse.ok) {
                 console.error('Erreur lors de la mise à jour des paris.');
                 reject('Erreur lors de la mise à jour des paris.');
@@ -1120,7 +1144,7 @@ function UpdateBets() {
 
 async function UpdateClassementBets() {
     try {
-        const response = await fetch('http://localhost:5000/get-bets_all');
+        const response = await fetch('/recuperer-classement');
 
         if (!response.ok) {
             throw new Error('Erreur lors de la récupération des paris');
@@ -1255,15 +1279,10 @@ async function AfficherPopupGame(gameId) {
     }
 }
 
-
 // Fonction pour fermer le popup
 function FermerPopupGame() {
     document.getElementById("popupGame").style.display = "none";
 }
-
-
-
-
 
 async function RechercheHistorique() {
 
@@ -1284,7 +1303,7 @@ async function RechercheHistorique() {
 
     const count = 10;
 
-    const url = `http://localhost:5000/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
+    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
 
     try {
         const matchIds = await fetchMatchHistory(gamePuuid, count);
