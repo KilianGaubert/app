@@ -28,13 +28,11 @@ function appelHeader_Bets(callback) {
         .catch(error => console.error("Erreur lors du chargement du header :", error));
 }
 
-// Fonction pour obtenir l'icône du joueur
 function getPlayerIcon(profileIconId) {
         const profileIconURL = `static/data_riot/15.2.1/img/profileicon/${profileIconId}.png`;
         return `<img src="${profileIconURL}" alt="Icône du joueur" width="64" height="64" style="border-radius: 10px;">`;
 }
 
-// Fonction pour obtenir l'icône du champion
 function getChampionIcon(championName) {
         const championIconPath = `static/data_riot/15.2.1/img/champion/${championName}.png`;
         return `<img src="${championIconPath}" alt="${championName}" width="30" height="30" style="vertical-align: middle;">`;
@@ -49,7 +47,6 @@ function getItemIcon(itemId) {
                 style="width: 32px; height: 32px; border: 1px solid gray; margin: 2px; border-radius: 4px;">`;
 }
 
-// Fonction pour obtenir l'icône du champion
 function getSummonerIcon(SummonerName) {
     const championIconPath = `static/data_riot/15.2.1/img/spell/${SummonerName}.png`;
     return `<img src="${championIconPath}" alt="${SummonerName}" width="30" height="30" style="vertical-align: middle;">`;
@@ -108,7 +105,7 @@ function convertSecondsToMinutes(seconds) {
     let remainingSeconds = seconds % 60;
     return `${minutes} min ${remainingSeconds} sec`;
 }
-// Fonction pour récupérer les stats à un moment donné
+
 function getStatsAtTime(timelineData, playerId, timeLimit = 600) {
     let kills = 0;
     let deaths = 0;
@@ -133,7 +130,6 @@ function getStatsAtTime(timelineData, playerId, timeLimit = 600) {
     return { kills, deaths, assists };
 }
 
-// Fonction pour récupérer l'icône du rang
 function getRankIcon(tier) {
     const rankIconPath = `static/data_riot/ranked-emblems/Ranked Emblems Latest/rank=${tier.toLowerCase()}.png`;
     return `<img src="${rankIconPath}" alt="${tier}" width="128" height="128" style="vertical-align: middle;">`;
@@ -149,7 +145,6 @@ function getKDAColor(kda) {
     if (kda >= 3) return "green"; // 3 ou plus -> vert.
 }
 
-// Fonction pour calculer la moyenne d'un tableau
 function calculateAverageTableau(arr) {
     if (arr.length === 0) return 0;
     return (arr.reduce((sum, value) => sum + value, 0) / arr.length).toFixed(2);
@@ -198,58 +193,14 @@ async function callAPI(url, method, body = null) {
 
         // Si la réponse n'est pas OK (code HTTP 200-299)
         if (!response.ok) {
-            const errorData = await response.json();  // Récupérer le message d'erreur depuis la réponse
-            return { success: false, message: errorData.message || 'Une erreur est survenue' };
+            return { 'Erreur : ': await response.json() };
         }
 
-        // Si la réponse est OK, retourner les données JSON
-        const data = await response.json();
-        return { success: true, data };
+        return await response.json();
 
     } catch (error) {
-        // Gérer les erreurs réseau ou autres exceptions
-        console.error('Erreur lors de l\'appel API:', error);
-        return { success: false, message: 'Erreur lors de la communication avec le serveur.' };
+        return 'Erreur lors de la communication avec le serveur.';
     }
-}
-
-// Fonction pour récupérer l'historique des matchs
-async function fetchMatchHistory(puuid, count) {
-    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}?count=${encodeURIComponent(count)}`;
-    const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Erreur lors de la récupération de l’historique des parties !');
-
-    return await response.json();
-}
-
-// Fonction pour récupérer les détails d'un match
-async function fetchMatchDetails(matchId) {
-    const matchUrl = `/proxy/lol/match/v5/matches/${matchId}`;
-    const matchResponse = await fetch(matchUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!matchResponse.ok) throw new Error(`Erreur pour le match ${matchId}`);
-
-    return await matchResponse.json();
-}
-
-// Fonction pour récupérer la timeline d'un match
-async function fetchTimeline(matchId) {
-    const timelineUrl = `/proxy/lol/match/v5/matches/${matchId}/timeline`;
-    const timelineResponse = await fetch(timelineUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!timelineResponse.ok) throw new Error(`Erreur pour la timeline du match ${matchId}`);
-
-    return await timelineResponse.json();
 }
 
 function formatDate(dateString) {
@@ -258,7 +209,7 @@ function formatDate(dateString) {
         .replace(/\.\d+/, '')  // Supprimer les millisecondes
         .replace('Z', '');  // Supprimer le 'Z'
 }
-// Fonction pour initialiser les stats par lane
+
 function initializeLaneStats() {
     return {
         TOP: { KILL: [], DEATH: [], ASSIST: [] },
@@ -269,8 +220,33 @@ function initializeLaneStats() {
     };
 }
 
-function DemandePseudo() {
+function FermerPopupGame() {
+    document.getElementById("popupGame").style.display = "none";
+}
 
+function compareRanks(a, b) {
+
+    // Ordre des rangs de League of Legends
+const rankOrder = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "EMERALD", "PLATINUM", "GOLD", "SILVER", "BRONZE", "IRON"];
+
+const tierA = a.tier ? rankOrder.indexOf(a.tier.toUpperCase()) : rankOrder.length;
+const tierB = b.tier ? rankOrder.indexOf(b.tier.toUpperCase()) : rankOrder.length;
+
+if (tierA !== tierB) return tierA - tierB; // Trier d'abord par tier
+
+const divisionA = a.rank ? parseInt(a.rank.replace(/\D/g, "")) || 5 : 5; // Convertit I, II, III, IV en chiffres
+const divisionB = b.rank ? parseInt(b.rank.replace(/\D/g, "")) || 5 : 5;
+
+if (divisionA !== divisionB) return divisionA - divisionB; // Puis par division
+
+return (b.leaguePoints || 0) - (a.leaguePoints || 0); // Enfin par LP (points de ligue)
+}
+
+
+//CALL API//
+
+
+async function DemandePseudo() {
     const gameName = document.getElementById("ResearchgameName").value;
     const tagLine = document.getElementById("ResearchtagLine").value;
 
@@ -286,76 +262,40 @@ function DemandePseudo() {
     const gameNameDiv = document.getElementById("gameName");
     const tagLineDiv = document.getElementById("tagLine");
 
-    // URL pour récupérer le puuid
-    const puuidUrl = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    try {
+        const puuidData = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
+        console.log("Data", puuidData);
+        const gamePuuid = puuidData.puuid;
 
-    fetch(puuidUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => {
-        if (!response.ok) throw new Error("Erreur lors de la récupération du puuid !");
-        return response.json();
-    })
-    .then(data => {
-        const gamePuuid = data.puuid;
-        console.log("Puuid reçu :", gamePuuid);
         localStorage.setItem("gameName", gameName);
         localStorage.setItem("tagLine", tagLine);
         localStorage.setItem("gamePuuid", gamePuuid);
 
-        // URL pour récupérer les détails du summoner (niveau, etc.)
-        const summonerUrl = `/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
-
-        return fetch(summonerUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    })
-    .then(response => {
-        if (!response.ok) throw new Error("Erreur lors de la récupération des données du summoner !");
-        return response.json();
-    })
-    .then(summonerData => {
+        const summonerData = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
         console.log("Données du summoner reçues :", summonerData);
 
-        // Générer l'icône du joueur
-        const playerIconHTML = getPlayerIcon(summonerData.profileIconId);
-
-        // Mettre à jour les éléments
+        profileIconDiv.innerHTML = getPlayerIcon(summonerData.profileIconId);
         levelDiv.innerHTML = `${summonerData.summonerLevel}`;
-        profileIconDiv.innerHTML = playerIconHTML;
-
         gameNameDiv.innerHTML = `${gameName}`;
         tagLineDiv.innerHTML = `#${tagLine}`;
 
-        const summonerId = summonerData.id;
-        const leagueUrl = `/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerId)}`;
-        return fetch(leagueUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    })
-    .then(response => {
-        if (!response.ok) throw new Error("Erreur lors de la récupération du classement du summoner !");
-        return response.json();
-    })
-    .then(leagueData => {
+        const leagueData = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerData.id)}`, 'GET');
         console.log("Données du classement du summoner reçues :", leagueData);
-        const ClassementDiv = document.getElementById("Classement");
+
         if (leagueData.length > 0) {
-            const tier = leagueData[0].tier;
-            const rank = leagueData[0].rank;
-            const leaguePoints = leagueData[0].leaguePoints;
-            const rankIconHTML = getRankIcon(tier);
-            RankIconDiv.innerHTML = `${rankIconHTML}`;
+            const { tier, rank, leaguePoints } = leagueData[0];
+            RankIconDiv.innerHTML = getRankIcon(tier);
             TierDiv.innerHTML = `${tier} ${rank}`;
             LPDiv.innerHTML = `${leaguePoints} LP`;
         } else {
-            
             TierDiv.innerHTML = `<p>Le summoner n'est pas encore classé.</p>`;
         }
         document.getElementById("Update").click();
 
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Erreur :", error);
         alert("Erreur lors de l'envoi de la requête !");
-    });
+    }
 }
 
 async function RechercheHistorique() {
@@ -374,25 +314,19 @@ async function RechercheHistorique() {
     const kdaAveragesEnemy = {};
     const laneStatsAlly = initializeLaneStats();
     const laneStatsEnemy = initializeLaneStats();
-
     const count = 10;
-
-    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
-
     try {
-        const matchIds = await fetchMatchHistory(gamePuuid, count);
-        console.log('Match IDs reçus :', matchIds);
-
+        const matchIds = await callAPI(`/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`,'GET');
         const matches = [];
 
         for (let i = 0; i < matchIds.length; i++) {
             const matchId = matchIds[i];
 
             // Récupération des détails du match
-            const matchData = await fetchMatchDetails(matchId);
+            const matchData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}`,'GET');
 
             // Récupération de la timeline du match
-            const timelineData = await fetchTimeline(matchId);
+            const timelineData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}/timeline`,'GET');
 
             matches.push({ matchData, timelineData });
 
@@ -419,11 +353,11 @@ async function RechercheHistorique() {
 
             const sumonnerSpell1 = player.summoner1Id;
             const Summoner1Name = await getSummonerByKey(sumonnerSpell1);
-            const Sumonner1Icon = await getSummonerIcon(Summoner1Name);
+            const Sumonner1Icon = getSummonerIcon(Summoner1Name);
 
             const sumonnerSpell2 = player.summoner2Id;
             const Summoner2Name = await getSummonerByKey(sumonnerSpell2);
-            const Sumonner2Icon = await getSummonerIcon(Summoner2Name);
+            const Sumonner2Icon = getSummonerIcon(Summoner2Name);
 
             // Séparer les joueurs en deux équipes
             const allies = matchData.info.participants.filter((p) => p.teamId === player.teamId);
@@ -463,11 +397,8 @@ async function RechercheHistorique() {
                 </div>`;
 
             // Récupération des stats à 10 minutes pour chaque joueur
-            const participantStatsHTML = matchData.info.participants
-                .map((participant) => {
+                matchData.info.participants.map((participant) => {
                     const stats = getStatsAtTime(timelineData, participant.participantId, 600); // 600 secondes = 10 minutes
-                    const { kills, deaths, assists, kda } = calculatePlayerStats(participant);
-                    const kdaColor = getKDAColor(kda);
                     const isAlly = participant.teamId === player.teamId;
                     // Remplir les statistiques dans le tableau selon la lane
                     const lane = participant.teamPosition || "Non spécifiée";
@@ -518,7 +449,6 @@ async function RechercheHistorique() {
                     `;
                 })
                 .join('');
-            const borderColor = player.win ? "green" : "red";
 
             return `<div id="match-container" class="match-container ${player.win ? 'win' : 'lose'}">
                         <div id="match-container10" class="match-container10">
@@ -596,43 +526,28 @@ async function RecherchePartie(Ouca) {
 
     const gameName = document.getElementById("ResearchgameName").value;
     const tagLine = document.getElementById("ResearchtagLine").value;    // URL pour récupérer le puuid
-    const puuidUrl = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
-
-    const response = await fetch(puuidUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-    });
-
-    if (!response.ok) throw new Error("Erreur lors de la récupération du puuid !");
-    
-    const data = await response.json();
-    const gamePuuid = data.puuid;
-    
+    const response = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
+    gamePuuid = response.puuid;
     console.log("Puuid reçu :", gamePuuid);
     localStorage.setItem("gameName", gameName);
     localStorage.setItem("tagLine", tagLine);
     localStorage.setItem("gamePuuid", gamePuuid);
 
-    if (!gamePuuid) {
-        alert("Veuillez d'abord rechercher un summoner !");
-        return;
-    }    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
-
     try {
-        const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        const spectatorData = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
 
-        if (response.status === 404) {
+        if (spectatorData.status === 404) {
             alert("Aucune partie en cours pour ce summoner.");
             return null;
         }
         
-        const spectatorData = await response.json();
         if (!spectatorData) return;
 
         console.log("Données de la partie en cours :", spectatorData);
         const participants = spectatorData.participants;
 
         const player = participants.find((p) => p.puuid === gamePuuid);
+        
         if (!player) {
             alert("Joueur introuvable dans la partie !");
             return;
@@ -724,6 +639,30 @@ async function RecherchePartie(Ouca) {
     }
 }
 
+async function RecherchePartie2(gamePuuid) {
+    if (!gamePuuid) return "Hors ligne"; // Si pas de puuid, on assume hors ligne
+
+    try {
+        const response = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
+
+        // Vérification si la réponse n'est pas OK
+        if (!response.ok) {
+            // Si le code d'état est 404, le joueur n'est pas en partie
+            if (response.status === 404) {
+                return "Hors ligne"; // Pas de partie en cours
+            }
+            return { 'Erreur : ': await response.json() }; // Autres erreurs
+        }
+
+        // Si tout va bien et que le joueur est en partie
+        return "En partie";
+
+    } catch (error) {
+        // Erreur de communication ou autre
+        return "Hors ligne"; // On considère que le joueur est hors ligne en cas d'erreur
+    }
+}
+
 async function RechercheMasteries() {
 
     gamePuuid = localStorage.getItem("gamePuuid") || "Aucun Puuid";
@@ -735,18 +674,9 @@ async function RechercheMasteries() {
         return;
     }
 
-    // URL pour récupérer les masteries du joueur
-    const url = `/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(gamePuuid)}`;
-
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) throw new Error("Erreur lors de la récupération des masteries !");
-
-        const masteries = await response.json();
+        
+        const masteries = await callAPI(`/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
         console.log("Masteries reçues :", masteries);
 
         // Affichage des masteries
@@ -777,57 +707,46 @@ async function RechercheMasteries() {
 async function UpdateClassement() {
     
     try {
-        const response = await fetch('/recuperer-joueurs-gamePuuid');
-        if (!response.ok) throw new Error("Erreur lors de la récupération des PUUIDs !");
-        const puuids = await response.json();
+        
+        const puuids = await callAPI(`/recuperer-joueurs-gamePuuid`, 'GET');
         console.log("Liste des PUUIDs récupérés :", puuids);
 
         // Exécuter les mises à jour pour chaque PUUID
         await Promise.all(
             puuids.map(async (gamePuuid) => {
-                const accountResponse = await fetch(`/proxy/riot/account/v1/accounts/by-puuid/${encodeURIComponent(gamePuuid)}`);
-                const accountData = await accountResponse.json();
-                const gameName = accountData.gameName;
-                const tagLine = accountData.tagLine;
-
-                const summonerResponse = await fetch(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`);
-                const summonerData = await summonerResponse.json();
-
-                const leagueResponse = await fetch(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerData.id)}`);
-                const leagueData = await leagueResponse.json();
-
+                const accountResponse = await callAPI(`/proxy/riot/account/v1/accounts/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+                const gameName = accountResponse.gameName;
+                const tagLine = accountResponse.tagLine;
+                const summonerResponse = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+                
+                const leagueResponse = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerResponse.id)}`, 'GET');
                 const summonerDetails = {
                     gamePuuid,
                     gameName,
                     tagLine,
-                    summonerID: summonerData.id,
-                    level: summonerData.summonerLevel,
-                    profileIconId: summonerData.profileIconId,
+                    summonerID: summonerResponse.id,
+                    level: summonerResponse.summonerLevel,
+                    profileIconId: summonerResponse.profileIconId,
                     tier: null,
                     rank: null,
                     leaguePoints: null
                 };
 
-                if (leagueData.length > 0) {
-                    summonerDetails.tier = leagueData[0].tier;
-                    summonerDetails.rank = leagueData[0].rank;
-                    summonerDetails.leaguePoints = leagueData[0].leaguePoints;
+                if (leagueResponse.length > 0) {
+                    summonerDetails.tier = leagueResponse[0].tier;
+                    summonerDetails.rank = leagueResponse[0].rank;
+                    summonerDetails.leaguePoints = leagueResponse[0].leaguePoints;
                 }
-
-                await fetch('/maj-joueurs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(summonerDetails)
-                });
+                console.log(summonerDetails);
+                response = await callAPI(`/maj-joueurs`, 'POST', (summonerDetails));
             })
         );
 
         console.log("Mise à jour terminée !");
 
         // Récupérer les joueurs mis à jour
-        const joueursResponse = await fetch('/recuperer-joueurs');
-        const joueurs = await joueursResponse.json();
-
+        const joueurs = await callAPI('/recuperer-joueurs', 'GET');
+        console.log(joueurs);
         // Trier les joueurs par classement
         const sortedPlayers = joueurs.sort(compareRanks);
 
@@ -848,8 +767,9 @@ async function UpdateClassement() {
                 <td>#${joueur.tagLine || 'Inconnu'}</td>
                 <td>${joueur.level || 'Inconnu'}</td>
                 <td>${joueur.tier || 'Unranked'} ${joueur.rank || ''} (${joueur.leaguePoints || 0} LP) ${rankIcon || ''}</td>
-                <td>${statut}</td>
                 <td>${joueur.balance}</td>
+                <td>${statut}</td>
+
                 <td><button class="Button" onclick="SupprimerJoueur('${joueur.gamePuuid}')">Supprimer le joueur</button></td>
             `;
             tbody.appendChild(tr);
@@ -861,296 +781,13 @@ async function UpdateClassement() {
     }
 }
 
-function AjoutJoueurs() {
-    const gameName = document.getElementById('ResearchgameName').value;
-    const tagLine = document.getElementById('ResearchtagLine').value;
-
-    const url = `/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
-
-    fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
-    .then(response => {
-        if (!response.ok) throw new Error("Erreur lors de la récupération du puuid !");
-        return response.json();
-    })
-    .then(data => {
-        
-        const gamePuuid = data.puuid;  // Récupération du puuid
-        
-        // Créer un objet pour stocker les informations du summoner
-        const summonerDetails = {
-            gamePuuid,  // Utilisation du gamePuuid ici
-            gameName,
-            tagLine,
-            summonerID: null,  // À remplir après récupération des données du summoner
-            level: null,       // À remplir après récupération des données du summoner
-            profileIconId: null,  // À remplir après récupération des données du summoner
-            tier: null,           // À mettre à jour plus tard
-            rank: null,           // Idem
-            leaguePoints: null    // Idem
-        };
-
-        // URL pour récupérer les détails du summoner (niveau, etc.)
-        const summonerUrl = `/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`;
-
-        return fetch(summonerUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
-            .then(response => response.json())
-            .then(summonerData => {
-                console.log("Données du summoner reçues :", summonerData);
-
-                // Mise à jour des données dans l'objet summonerDetails
-                summonerDetails.summonerID = summonerData.id;
-                summonerDetails.level = summonerData.summonerLevel;
-                summonerDetails.profileIconId = summonerData.profileIconId;
-                console.log(summonerDetails.summonerID, summonerDetails.level);
-
-                // URL pour récupérer le classement du summoner
-                const leagueUrl = `/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`;
-                return fetch(leagueUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
-                    .then(response => response.json())
-                    .then(leagueData => {
-                        console.log("Données du classement du summoner reçues :", leagueData);
-
-                        if (leagueData.length > 0) {
-                            summonerDetails.tier = leagueData[0].tier;
-                            summonerDetails.rank = leagueData[0].rank;
-                            summonerDetails.leaguePoints = leagueData[0].leaguePoints;
-                        }
-
-                        // Renvoi de summonerDetails à l'étape suivante
-                        return summonerDetails;
-                    });
-            });
-    })
-    .then(summonerDetails => {
-        // Envoi des données au backend pour les ajouter à la base de données
-        return fetch('/ajouter-joueurs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(summonerDetails) // Envoyer les données dans un objet JSON
-        });
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(data);
-        alert(data.message || 'Erreur lors de l\'ajout du joueur');
-        UpdateClassement(); // Mettre à jour le classement après l'ajout
-    })
-    .catch(error => {
-        console.error("Erreur :", error);
-        alert('Erreur lors de la récupération des données !');
-    });
-}
-
-async function RecherchePartie2(gamePuuid) {
-    if (!gamePuuid) return "Hors ligne"; // Si pas de puuid, on assume hors ligne
-
-    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
-
-    try {
-        const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-
-        if (response.status === 404) return "Hors ligne"; // Pas de partie en cours
-
-        if (!response.ok) throw new Error("Erreur lors de la récupération des données de la partie !");
-        
-        return "En partie"; // Si pas d'erreur et pas 404, le joueur est en jeu
-    } catch (error) {
-        return "Hors ligne"; // En cas d'erreur, on affiche Hors ligne
-    }
-}
-
-async function SupprimerJoueur(gamePuuid) {
-    // Envoie une requête DELETE pour supprimer le joueur
-    const response = await fetch(`/supprimer-joueurs`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    if (response.ok) {
-        // Supprimer la ligne de la table HTML
-        const row = document.querySelector(`button[onclick="SupprimerJoueur('${gamePuuid}')"]`).closest('tr');
-        row.remove();
-    } else {
-        alert('Erreur lors de la suppression du joueur');
-    }
-}
-
-async function Bets(ResultatParié) {
-    const gamePuuid = localStorage.getItem("gamePuuid");
-
-    if (!gamePuuid) {
-        alert('Aucun PUUID trouvé !');
-        return;
-    }
-
-    const url = `/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`;
-
-    try {
-        const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-
-        if (!response.ok) {
-            alert("Aucune partie en cours pour ce summoner.");
-            return;
-        }
-
-        const spectatorData = await response.json();
-
-        const gameLengthInMinutes = spectatorData.gameLength / 60; // Convertir la durée en minutes
-        if (gameLengthInMinutes > 40) {
-            alert("La partie a commencé il y a plus de 40 minutes. Les paris ne sont pas autorisés.");
-            return;
-        }
-
-        const participants = spectatorData.participants;
-
-        const player = participants.find((p) => p.puuid === gamePuuid);
-        if (!player) {
-            alert("Joueur introuvable dans la partie !");
-            return;
-        }
-
-        const gameDetails = {
-            gameId: spectatorData.gameId,
-            gameStartTime: spectatorData.gameStartTime,
-        };
-
-        // Ajouter la partie d'abord
-        await fetch('/ajouter-games', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gameDetails)
-        });
-
-        console.log("Game ajoutée avec succès.");
-
-        // Logique pour déterminer bet_teamId en fonction de "ResultatParié"
-        let bet_teamId;
-        if (ResultatParié === "Victoire") {
-            bet_teamId = (player.teamId === 100) ? 100 : 200; // Si "Victoire" et teamId == 100, alors 100, sinon 200
-        } else if (ResultatParié === "Defaite") {
-            bet_teamId = (player.teamId === 100) ? 200 : 100; // Si "Défaite" et teamId == 200, alors 200, sinon 100
-        }
-
-        const betAmount = document.getElementById("BetsPrice")?.value;
-        if (!betAmount || betAmount == 0) {
-            alert('Veuillez entrer un montant de pari valide.');
-            return;
-        }
-
-        const BetsDetails = {
-            gamePuuid: "Ba913pscvywlXBtPlzsRaO56D65g5GZLT7jBfKt7OieKP_5LCgHwab1EkpN-Pm9nxqb7xumlByd61w",
-            gameId: spectatorData.gameId,
-            bet_amount: betAmount,
-            bet_teamId: bet_teamId, // Mise à jour en fonction du résultat
-        };
-
-        try {
-            const response = await fetch('/ajouter-bets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(BetsDetails)
-            });
-        
-            const result = await response.json();
-
-            if (!response.ok) {
-                alert(result.message);
-                throw new Error(result.message || `Erreur HTTP: ${response.status}`);
-            }
-            alert(result.message);
-            console.log(result.message);
-        
-            // Appel à UpdateClassementBets après l'ajout du pari
-            UpdateClassementBets();
-        
-        } catch (error) {
-            console.error(error);
-        }
-        
-
-    } catch (error) {
-        console.error("Erreur :", error);
-        alert("Erreur lors de la récupération de la partie en cours !");
-    }
-}
-
-function UpdateBets() {
-    return new Promise(async (resolve, reject) => {
-        try {
-            // Étape 1 : Récupérer les jeux en attente
-            const updateGamesResponse = await fetch('/recuperer-games');
-            if (!updateGamesResponse.ok) throw new Error('Erreur lors de la récupération des jeux en attente.');
-
-            const pendingGames = await updateGamesResponse.json();
-            if (pendingGames.length === 0) {
-                console.log('Aucun jeu en attente trouvé.');
-            } else {
-                for (const game of pendingGames) {
-                    const matchId = game.gameId;
-
-                    try {
-                        const matchDetailsResponse = await fetch(`/proxy/lol/match/v5/matches/${matchId}`);
-                        const matchData = await matchDetailsResponse.json();
-                        let winnerTeamId = matchData.info.teams[0].win ? 100 : 200;
-
-                        const matchDetails = {
-                            gameId: game.gameId,
-                            gameEndTime: matchData.info.gameEndTimestamp,
-                            gameStatus: 'completed',
-                            winnerTeamId: winnerTeamId,
-                        };
-
-                        console.log(matchDetails);
-
-                        // Mise à jour de la base de données
-                        const updateResponse = await fetch('/maj-games', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(matchDetails)
-                        });
-
-                        if (!updateResponse.ok) {
-                            console.error(`❌ Erreur lors de la mise à jour du jeu ${matchId}`);
-                        } else {
-                            console.log(`✅ Jeu ${matchId} mis à jour avec succès`);
-                        }
-
-                    } catch (error) {
-                        console.log(`Game ${matchId} encore en cours ou non disponible.`);
-                    }
-                }
-            }
-
-            // Étape 2 : Mise à jour des paris
-            const updateBetsResponse = await fetch('/maj-bets', { method: 'POST' });
-            if (!updateBetsResponse.ok) {
-                console.error('Erreur lors de la mise à jour des paris.');
-                reject('Erreur lors de la mise à jour des paris.');
-            } else {
-                console.log(`Paris mis à jour avec succès`);
-                // Une fois les paris mis à jour, on appelle UpdateClassementBets
-                UpdateClassementBets();  
-                resolve();  // Résoudre la promesse lorsque tout est terminé
-            }
-
-        } catch (error) {
-            console.error('Erreur:', error);
-            reject(error);  // Si une erreur se produit, rejeter la promesse
-        }
-    });
-}
-
 async function UpdateClassementBets() {
     try {
-        const response = await fetch('/recuperer-classement');
-
-        if (!response.ok) {
+        const bets = await callAPI('/recuperer-classement', 'GET');
+        if (bets.error) {
             throw new Error('Erreur lors de la récupération des paris');
         }
 
-        const bets = await response.json();
         const tbody = document.querySelector('#joueursTable tbody');
 
         if (!tbody) {
@@ -1209,6 +846,206 @@ async function UpdateClassementBets() {
     }
 }
 
+async function UpdateBets() {
+    try {
+        // Étape 1 : Récupérer les jeux en attente
+        const pendingGames = await callAPI('/recuperer-games', 'GET');
+
+        if (pendingGames.length === 0) {
+            console.log('Aucun jeu en attente trouvé.');
+        } 
+        
+        else {
+            for (const game of pendingGames) {
+                const matchId = game.gameId;
+
+                try {
+                    const matchData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}`, 'GET');
+                    if (matchData.error) {
+                        console.log(`Game ${matchId} encore en cours ou non disponible.`);
+                        continue;
+                    }
+
+                    let winnerTeamId = matchData.info.teams[0].win ? 100 : 200;
+
+                    const matchDetails = {
+                        gameId: game.gameId,
+                        gameEndTime: matchData.info.gameEndTimestamp,
+                        gameStatus: 'completed',
+                        winnerTeamId: winnerTeamId,
+                    };
+
+                    console.log(matchDetails);
+
+                    // Mise à jour de la base de données
+                    const updateResponse = await callAPI('/maj-games', 'POST', matchDetails);
+
+                    if (updateResponse.error) {
+                        console.error(`❌ Erreur lors de la mise à jour du jeu ${matchId}`);
+                    } else {
+                        console.log(`✅ Jeu ${matchId} mis à jour avec succès`);
+                    }
+
+                } catch (error) {
+                    console.log(`Game ${matchId} encore en cours ou non disponible.`);
+                }
+            }
+        }
+
+        // Étape 2 : Mise à jour des paris
+        const updateBetsResponse = await callAPI('/maj-bets', 'POST');
+        if (updateBetsResponse.error) {
+            console.error('Erreur lors de la mise à jour des paris.');
+            throw new Error('Erreur lors de la mise à jour des paris.');
+        } else {
+            console.log(`Paris mis à jour avec succès`);
+            // Une fois les paris mis à jour, on appelle UpdateClassementBets
+            UpdateClassementBets();  
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+
+async function AjoutJoueurs() {
+    try {
+        const gameName = document.getElementById('ResearchgameName').value;
+        const tagLine = document.getElementById('ResearchtagLine').value;
+
+        // Récupérer le puuid
+        const gamePuuid = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
+
+        // Initialisation de l'objet Summoner
+        const summonerDetails = {
+            gamePuuid,
+            gameName,
+            tagLine,
+            summonerID: null,
+            level: null,
+            profileIconId: null,
+            tier: null,
+            rank: null,
+            leaguePoints: null
+        };
+
+        // Récupérer les détails du summoner
+        const summonerData = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+        
+        summonerDetails.summonerID = summonerData.id;
+        summonerDetails.level = summonerData.summonerLevel;
+        summonerDetails.profileIconId = summonerData.profileIconId;
+
+        const leagueData = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`, 'GET');
+
+        if (leagueData.length > 0) {
+            summonerDetails.tier = leagueData[0].tier;
+            summonerDetails.rank = leagueData[0].rank;
+            summonerDetails.leaguePoints = leagueData[0].leaguePoints;
+        }
+
+        // Envoyer les données au backend pour ajout en base de données
+        const response = await callAPI('/ajouter-joueurs', 'POST', summonerDetails);
+        console.log(response);
+        UpdateClassement();
+
+    } catch (error) {
+        console.error("Erreur :", error);
+        alert('Erreur lors de la récupération des données !');
+    }
+}
+
+async function SupprimerJoueur(gamePuuid) {
+    try {
+        // Envoie une requête DELETE pour supprimer le joueur
+        await callAPI('/supprimer-joueurs', 'DELETE', { gamePuuid });
+
+        // Supprimer la ligne de la table HTML
+        const row = document.querySelector(`button[onclick="SupprimerJoueur('${gamePuuid}')"]`).closest('tr');
+        if (row) {
+            row.remove();
+        }
+
+    } catch (error) {
+        console.error("Erreur :", error);
+        alert('Erreur lors de la suppression du joueur');
+    }
+}
+
+async function Bets(ResultatParié) {
+    const gamePuuid = localStorage.getItem("gamePuuid");
+
+    if (!gamePuuid) {
+        alert('Aucun PUUID trouvé !');
+        return;
+    }
+
+    try {
+        // Récupération des infos de la partie en cours
+        const spectatorData = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
+
+        if (spectatorData.error) {
+            alert("Aucune partie en cours pour ce summoner.");
+            return;
+        }
+
+        const gameLengthInMinutes = spectatorData.gameLength / 60; // Convertir en minutes
+        if (gameLengthInMinutes > 40) {
+            alert("La partie a commencé il y a plus de 40 minutes. Les paris ne sont pas autorisés.");
+            return;
+        }
+
+        const participants = spectatorData.participants;
+        const player = participants.find((p) => p.puuid === gamePuuid);
+
+        if (!player) {
+            alert("Joueur introuvable dans la partie !");
+            return;
+        }
+
+        const gameDetails = {
+            gameId: spectatorData.gameId,
+            gameStartTime: spectatorData.gameStartTime,
+        };
+
+        // Ajouter la partie d'abord
+        const gameResponse = await callAPI('/ajouter-games', 'POST', gameDetails);
+
+        console.log("Game ajoutée avec succès.");
+
+        // Déterminer l'équipe en fonction du pari
+        let bet_teamId = (ResultatParié === "Victoire") ? player.teamId : (player.teamId === 100 ? 200 : 100);
+
+        const betAmount = document.getElementById("BetsPrice")?.value;
+        if (!betAmount || betAmount == 0) {
+            alert('Veuillez entrer un montant de pari valide.');
+            return;
+        }
+
+        const BetsDetails = {
+            gamePuuidJoueur: '-prqPWGkcMKQa17zifBRuowuf2X2dHssiQ93wca4tUIjfVigDEx6RhdhvYDJVyye4WGPV6Cb5QLOAA',
+            gameId: spectatorData.gameId,
+            bet_amount: betAmount,
+            bet_teamId: bet_teamId,
+        };
+
+        // Envoi du pari
+        const betResponse = await callAPI('/ajouter-bets', 'POST', BetsDetails);
+        if (betResponse.error) {
+            alert(betResponse.message);
+            throw new Error(betResponse.message);
+        }
+
+        alert(betResponse.message);
+        console.log(betResponse.message);
+
+        // Mettre à jour le classement des paris
+        UpdateClassementBets();
+
+    } catch (error) {
+        console.error("Erreur :", error);
+        alert("Erreur lors de la récupération de la partie en cours !");
+    }
+}
 
 async function AfficherPopupGame(gameId) {
     try {
@@ -1227,7 +1064,7 @@ async function AfficherPopupGame(gameId) {
         popup.style.display = "block";
 
         // Récupération des détails du match
-        const matchData = await fetchMatchDetails(gameId);
+        const matchData = await callAPI(`https://api.riotgames.com/lol/matches/${matchId}`, 'GET');
 
         if (!matchData) {
             console.error("❌ Erreur : Aucune donnée de match trouvée !");
@@ -1278,262 +1115,3 @@ async function AfficherPopupGame(gameId) {
         console.error("❌ Erreur:", error);
     }
 }
-
-// Fonction pour fermer le popup
-function FermerPopupGame() {
-    document.getElementById("popupGame").style.display = "none";
-}
-
-async function RechercheHistorique() {
-
-    gamePuuid = localStorage.getItem("gamePuuid") || "Aucun Puuid";
-    gameName = localStorage.getItem("gameName") || "Inconnu";
-    tagLine = localStorage.getItem("tagLine") || "Aucune tagline";
-
-    if (!gamePuuid) {
-        alert("Veuillez d'abord rechercher un summoner !");
-        return;
-    }
-    historiqueInfo.innerHTML = '<p>Chargement des données...</p>';
-
-    const kdaAveragesAlly = {};
-    const kdaAveragesEnemy = {};
-    const laneStatsAlly = initializeLaneStats();
-    const laneStatsEnemy = initializeLaneStats();
-
-    const count = 10;
-
-    const url = `/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`;
-
-    try {
-        const matchIds = await fetchMatchHistory(gamePuuid, count);
-        console.log('Match IDs reçus :', matchIds);
-
-        const matches = [];
-
-        for (let i = 0; i < matchIds.length; i++) {
-            const matchId = matchIds[i];
-
-            // Récupération des détails du match
-            const matchData = await fetchMatchDetails(matchId);
-
-            // Récupération de la timeline du match
-            const timelineData = await fetchTimeline(matchId);
-
-            matches.push({ matchData, timelineData });
-
-            if ((i + 1) % 20 === 0) {
-                console.log("Pause de 1 seconde pour respecter la limite d'API...");
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-        }
-
-        console.log('Détails des matchs reçus :', matches);
-
-        const matchDetailsHTML = await Promise.all(matches.map(async ({ matchData, timelineData }) => {
-            const player = matchData.info.participants.find((p) => p.puuid === gamePuuid);
-            const championIconHTML = getChampionIcon(player.championName);
-
-            // Calcul du KDA global
-            const { kills: playerkills, deaths: playerdeaths, assists: playerassists, kda: playerkda } = calculatePlayerStats(player);
-
-            const kdaColor = getKDAColor(playerkda);
-
-            const itemsHTML = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5]
-                .map((itemId) => itemId ? getItemIcon(itemId) : '<div style="width:30px;height:30px;border:1px solid black;margin:2px;"></div>')
-                .join('');
-
-            const sumonnerSpell1 = player.summoner1Id;
-            const Summoner1Name = await getSummonerByKey(sumonnerSpell1);
-            const Sumonner1Icon = await getSummonerIcon(Summoner1Name);
-
-            const sumonnerSpell2 = player.summoner2Id;
-            const Summoner2Name = await getSummonerByKey(sumonnerSpell2);
-            const Sumonner2Icon = await getSummonerIcon(Summoner2Name);
-
-            // Séparer les joueurs en deux équipes
-            const allies = matchData.info.participants.filter((p) => p.teamId === player.teamId);
-            const enemies = matchData.info.participants.filter((p) => p.teamId !== player.teamId);
-
-            const teamHTML = (team, isAlly) =>
-                `<div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                    ${team
-                        .map((participant) => {
-                            const { kills: participantkills, deaths: participantdeaths, assists: participantassists, kda: participantkda } = calculatePlayerStats(participant);
-
-                            // Détermination de la couleur du KDA avec la fonction getKDAColor
-
-                            const kdaColor = getKDAColor(participantkda);
-                            // Récupérer les items du joueur
-                            const itemsHTML = [
-                                participant.item0, participant.item1, participant.item2,
-                                participant.item3, participant.item4, participant.item5
-                            ]
-                                .map((itemId) => itemId ? getItemIcon(itemId) : '<div style="width:30px;height:30px;border:1px solid black;margin:2px;"></div>')
-                                .join('');
-
-                            return `
-                                <div style="border: 1px solid ${isAlly ? "green" : "red"}; border-radius: 10px; padding: 10px; margin: 5px; text-align: center; width: 150px;">
-                                    <strong>${participant.championName}</strong>
-                                    <br>${getChampionIcon(participant.championName)}
-                                    <br><strong>KDA:</strong> <span style="color: ${kdaColor};">${participantkda}</span>
-                                    
-                                    <br><strong>Lane:</strong> ${participant.teamPosition || "Non spécifiée"}
-                                    <br>Kills: ${participant.kills}, Deaths: ${participant.deaths}, Assists: ${participant.assists}
-                                    <br><strong>Items :</strong>
-                                    <div style="display: flex; flex-wrap: wrap; margin-top: 10px;">${itemsHTML}</div>
-                                </div>
-                            `;
-                        })
-                        .join("")}
-                </div>`;
-
-            // Récupération des stats à 10 minutes pour chaque joueur
-            const participantStatsHTML = matchData.info.participants
-                .map((participant) => {
-                    const stats = getStatsAtTime(timelineData, participant.participantId, 600); // 600 secondes = 10 minutes
-                    const { kills, deaths, assists, kda } = calculatePlayerStats(participant);
-                    const kdaColor = getKDAColor(kda);
-                    const isAlly = participant.teamId === player.teamId;
-                    // Remplir les statistiques dans le tableau selon la lane
-                    const lane = participant.teamPosition || "Non spécifiée";
-                    if (isAlly) {
-                        if (laneStatsAlly[lane]) {
-                            laneStatsAlly[lane].KILL.push(stats.kills);
-                            laneStatsAlly[lane].DEATH.push(stats.deaths);
-                            laneStatsAlly[lane].ASSIST.push(stats.assists);
-                        }
-                    }
-                    else if (!isAlly) {
-                        if (laneStatsEnemy[lane]) {
-                            laneStatsEnemy[lane].KILL.push(stats.kills);
-                            laneStatsEnemy[lane].DEATH.push(stats.deaths);
-                            laneStatsEnemy[lane].ASSIST.push(stats.assists);
-                        }
-                    }
-
-                    for (const lane in laneStatsAlly) {
-
-                        // Calcul des moyennes pour les alliés
-                        const ally = {
-                            kills: calculateAverageTableau(laneStatsAlly[lane].KILL),
-                            deaths: calculateAverageTableau(laneStatsAlly[lane].DEATH),
-                            assists: calculateAverageTableau(laneStatsAlly[lane].ASSIST)
-                        };
-
-                        const { kills: AverageAllykills, deaths: AverageAllydeaths, assists: AverageAllyassists, kda: AveragesAllyKDA } = calculatePlayerStats(ally);
-                        kdaAveragesAlly[lane] = AveragesAllyKDA;
-
-                        // Calcul des moyennes pour les ennemis
-                        const enemy = {
-                            kills: calculateAverageTableau(laneStatsEnemy[lane].KILL),
-                            deaths: calculateAverageTableau(laneStatsEnemy[lane].DEATH),
-                            assists: calculateAverageTableau(laneStatsEnemy[lane].ASSIST)
-                        };
-
-                        const { kills: AverageEnemykills, deaths: AverageEnemydeaths, assists: AverageEnemyassists, kda: AveragesEnemykda } = calculatePlayerStats(enemy);
-                        kdaAveragesEnemy[lane] = AveragesEnemykda;
-                    }
-
-                    return `
-                        <div style="margin-bottom: 5px;">
-                            <strong>Participant ID :</strong> ${participant.participantId} <br>
-                            <strong>Lane :</strong> ${participant.teamPosition || "Non spécifiée"} <br>
-                            <strong>Champion :</strong> ${participant.championName} ${getChampionIcon(participant.championName)}<br>
-                        </div>
-                    `;
-                })
-                .join('');
-            const borderColor = player.win ? "green" : "red";
-
-            return `<div id="match-container" class="match-container ${player.win ? 'win' : 'lose'}">
-                        <div id="match-container10" class="match-container10">
-                            <div id="match-container2" class="match-container2">
-                                <div id="match-gamemode" class="match-gamemode"> Mode de jeu : ${matchData.info.gameMode} </div>
-                                <div id="match-victoire" class="match-victoire"> ${player.win ? 'Victoire' : 'Défaite'} </div>
-                            </div>
-
-                            <div id="match-container3" class="match-container3">
-
-                                <div id="match-container4" class="match-container4">
-                                    <div id="match-champion" class="match-champion"> ${championIconHTML} </div>
-                                    <div id="match-sumonnericon1" class="match-sumonnericon"> ${Sumonner1Icon}</div>
-                                    <div id="match-sumonnericon2" class="match-sumonnericon"> ${Sumonner2Icon} </div>
-                                    <div id="match-kda" class="match-kda"> ${playerkills} / ${playerdeaths} / ${playerassists} </div>
-                                    <div id="kda-color" class="kda-${kdaColor}">${playerkda} </div>
-                                </div>
-
-                                <div id="match-container5" class="match-container5">
-                                    <div id="match-item" class="match-item">${itemsHTML}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="match-container20" class="match-container20">
-                            <details class="match-details">
-                                <summary>Statistiques détaillées des équipes</summary>
-                                <div>
-                                    <strong>Équipe Alliée :</strong>
-                                    ${teamHTML(allies, true)}
-                                    <hr>
-                                    <strong>Équipe Adverse :</strong>
-                                    ${teamHTML(enemies, false)}
-                                </div>
-                            </details>
-                        </div>
-                    </div>`;
-
-        }));
-
-        document.getElementById('historiqueInfo').innerHTML = `
-            <h3>Détails des ${matches.length} dernières parties :</h3>
-            <ul style="list-style-type: none; padding: 0;">${matchDetailsHTML.join('')}</ul>
-        `;
-        document.getElementById('10MinClassement').innerHTML += `
-            <hr>
-            <h3>Moyennes des KDA par lane a 10min de jeu :</h3>
-            <div>
-                <strong>Alliés :</strong>
-                <ul>
-                    ${Object.entries(kdaAveragesAlly)
-                        .map(([lane, kda]) => `<li>${lane} : ${kda}</li>`)
-                        .join("")}
-                </ul>
-                <strong>Ennemis :</strong>
-                <ul>
-                    ${Object.entries(kdaAveragesEnemy)
-                        .map(([lane, kda]) => `<li>${lane} : ${kda}</li>`)
-                        .join("")}
-                </ul>
-            </div>
-        `;
-        // Affichage du tableau des statistiques pour chaque lane
-        console.log('Stats par lane alliés:', laneStatsAlly);
-        console.log('Stats par lane énnemis:', laneStatsEnemy);
-        console.log("Moyennes des KDA des alliés :", kdaAveragesAlly);
-        console.log("Moyennes des KDA des ennemis :", kdaAveragesEnemy);
-
-    } catch (error) {
-        console.error('Erreur :', error);
-        alert('Erreur lors de l’envoi de la requête !');
-    }
-}
-
-// Fonction de tri des joueurs
-function compareRanks(a, b) {
-
-    // Ordre des rangs de League of Legends
-const rankOrder = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "EMERALD", "PLATINUM", "GOLD", "SILVER", "BRONZE", "IRON"];
-
-const tierA = a.tier ? rankOrder.indexOf(a.tier.toUpperCase()) : rankOrder.length;
-const tierB = b.tier ? rankOrder.indexOf(b.tier.toUpperCase()) : rankOrder.length;
-
-if (tierA !== tierB) return tierA - tierB; // Trier d'abord par tier
-
-const divisionA = a.rank ? parseInt(a.rank.replace(/\D/g, "")) || 5 : 5; // Convertit I, II, III, IV en chiffres
-const divisionB = b.rank ? parseInt(b.rank.replace(/\D/g, "")) || 5 : 5;
-
-if (divisionA !== divisionB) return divisionA - divisionB; // Puis par division
-
-return (b.leaguePoints || 0) - (a.leaguePoints || 0); // Enfin par LP (points de ligue)
-}
-

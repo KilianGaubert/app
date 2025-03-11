@@ -141,7 +141,13 @@ app.get('/proxy/lol/spectator/v5/active-games/by-summoner/:gamePuuid', async (re
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ message: 'Erreur API : Récupération des données de la partie en cours', gamePuuid });
+        if (error.response && error.response.status === 404) {
+            // Si l'erreur est 404, renvoyer une erreur 404 avec un message personnalisé
+            res.status(404).json({ message: 'Joueur pas en partie', gamePuuid });
+        } else {
+            // Pour toutes les autres erreurs, renvoyer une erreur 500
+            res.status(500).json({ message: 'Erreur API : Récupération des données de la partie en cours', gamePuuid });
+        }
     }
 });
 
@@ -253,6 +259,7 @@ app.post('/maj-joueurs', (req, res) => {
 
     if (!gameName || !tagLine || !summonerID || !level || !profileIconId) {
         return res.status(400).json({ message: 'Des informations sont manquantes' });
+        
     }
 
     // Vérifier si le gamePuuid existe déjà
@@ -277,7 +284,6 @@ app.post('/maj-joueurs', (req, res) => {
             if (err) {
                 return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
-
             res.status(200).json({ message: '✅ Summoner mis à jour avec succès !' });
         });
     });
@@ -302,8 +308,8 @@ app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
             return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
-        const data = data.map(row => row.gamePuuid);
-        res.json(results);
+        const data = results.map(row => row.gamePuuid);
+        res.json(data);
 
     });
 });
@@ -311,10 +317,10 @@ app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
 //BDD BETS//
 
 app.post('/ajouter-bets', (req, res) => {
-    const { gamePuuid, gameId, bet_amount, bet_teamId } = req.body;
-
+    const { gamePuuidJoueur, gameId, bet_amount, bet_teamId } = req.body;
+    console.log(req.body);
     // Vérifie si les autres informations sont présentes
-    if (!gamePuuid || !gameId || !bet_amount || !bet_teamId) {
+    if (!gamePuuidJoueur || !gameId || !bet_amount || !bet_teamId) {
         return res.status(400).json({ message: 'Des informations sont manquantes' });
     }
 
@@ -323,7 +329,7 @@ app.post('/ajouter-bets', (req, res) => {
     
     // Vérification si le joueur existe dans la table joueurs
 
-    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuidJoueur], (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
@@ -346,7 +352,7 @@ app.post('/ajouter-bets', (req, res) => {
                 return res.status(500).json({ message: 'Erreur avec la base de données' });
             }
 
-            db.query('INSERT INTO bets (gamePuuid, gameId, bet_amount, bet_teamId) VALUES (?, ?, ?, ?)', [gamePuuid, modifiedGameId, bet_amount, bet_teamId], (err, results) => {
+            db.query('INSERT INTO bets (gamePuuid, gameId, bet_amount, bet_teamId) VALUES (?, ?, ?, ?)', [gamePuuidJoueur, modifiedGameId, bet_amount, bet_teamId], (err, results) => {
                 if (err) {
                     return db.rollback(() => {
                         res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
@@ -354,7 +360,7 @@ app.post('/ajouter-bets', (req, res) => {
                 }
 
                 // Mettre à jour la balance du joueur
-                db.query('UPDATE joueurs SET balance = balance - ? WHERE gamePuuid = ?', [bet_amount, gamePuuid], (err, results) => {
+                db.query('UPDATE joueurs SET balance = balance - ? WHERE gamePuuid = ?', [bet_amount, gamePuuidJoueur], (err, results) => {
                     if (err) {
                         return db.rollback(() => {
                             res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
@@ -363,7 +369,7 @@ app.post('/ajouter-bets', (req, res) => {
 
                     // Ajouter une transaction dans la table transactions
 
-                    db.query('INSERT INTO transactions (gamePuuid, transaction_type, amount) VALUES (?, ?, ?)', [gamePuuid, 'bet_deposit', bet_amount], (err, results) => {
+                    db.query('INSERT INTO transactions (gamePuuid, transaction_type, amount) VALUES (?, ?, ?)', [gamePuuidJoueur, 'bet_deposit', bet_amount], (err, results) => {
                         if (err) {
                             return db.rollback(() => {
                                 res.status(500).json({ message: 'Erreur avec la base de données, rollback fait' });
@@ -377,7 +383,6 @@ app.post('/ajouter-bets', (req, res) => {
                                     res.status(500).json({ message: 'Erreur lors de la validation de la transaction.' });
                                 });
                             }
-
                             res.status(200).json({ message: '✅ Pari ajouté avec succès, solde mis à jour et transaction enregistrée !' });
                         });
                     });
@@ -505,8 +510,6 @@ app.get('/recuperer-bets', (req, res) => {
     });
 });
 
-
-
 //BDD GAMES//
 
 app.post('/ajouter-games', (req, res) => {
@@ -555,7 +558,6 @@ app.post('/ajouter-games', (req, res) => {
 app.post('/maj-games', (req, res) => {
     // Extraire les données envoyées
     const { gameId, gameEndTime, gameStatus, winnerTeamId } = req.body;
-
     // Vérifie si gameId est bien présent dans la requête
     if (!gameId) {
         return res.status(400).json({ message: 'gameId manquant' });
@@ -623,8 +625,6 @@ app.get('/recuperer-games', (req, res) => {
         res.status(200).json(results);
     });
 });
-
-
 
 //BDD AUTRES//
 
