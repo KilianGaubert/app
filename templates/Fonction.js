@@ -1064,7 +1064,7 @@ async function AfficherPopupGame(gameId) {
         popup.style.display = "block";
 
         // Récupération des détails du match
-        const matchData = await callAPI(`https://api.riotgames.com/lol/matches/${matchId}`, 'GET');
+        const matchData = await callAPI(`/proxy/lol/match/v5/matches/${gameId}`, 'GET');
 
         if (!matchData) {
             console.error("❌ Erreur : Aucune donnée de match trouvée !");

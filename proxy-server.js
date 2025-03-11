@@ -250,7 +250,6 @@ app.delete('/supprimer-joueurs', (req, res) => {
 });
 
 app.post('/maj-joueurs', (req, res) => {
-
     const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints } = req.body;
 
     if (!gamePuuid) {
@@ -318,7 +317,6 @@ app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
 
 app.post('/ajouter-bets', (req, res) => {
     const { gamePuuidJoueur, gameId, bet_amount, bet_teamId } = req.body;
-    console.log(req.body);
     // Vérifie si les autres informations sont présentes
     if (!gamePuuidJoueur || !gameId || !bet_amount || !bet_teamId) {
         return res.status(400).json({ message: 'Des informations sont manquantes' });
