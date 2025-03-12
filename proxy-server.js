@@ -141,14 +141,8 @@ app.get('/proxy/lol/spectator/v5/active-games/by-summoner/:gamePuuid', async (re
         const data = await fetchRiotAPI(url);
         res.json(data);
     } catch (error) {
-        if (error.response && error.response.status === 404) {
-            // Si l'erreur est 404, renvoyer une erreur 404 avec un message personnalisé
-            res.status(404).json({ message: 'Joueur pas en partie', gamePuuid });
-        } else {
-            // Pour toutes les autres erreurs, renvoyer une erreur 500
             res.status(500).json({ message: 'Erreur API : Récupération des données de la partie en cours', gamePuuid });
         }
-    }
 });
 
 // Route pour obtenir l'historique des partie à partir du PUUID avec un paramètre count

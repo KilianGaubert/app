@@ -191,15 +191,19 @@ async function callAPI(url, method, body = null) {
             body: body ? JSON.stringify(body) : null,
         });
 
-        // Si la réponse n'est pas OK (code HTTP 200-299)
-        if (!response.ok) {
-            return { 'Erreur : ': await response.json() };
+        // Lire la réponse JSON
+        const data = await response.json();
+
+        // Vérifier si `status` existe et contient une erreur
+        if (data.status && data.status.status_code && data.status.status_code >= 400) {
+            console.log("Erreur détectée:", data.status);
+            return { error: data.status };
         }
 
-        return await response.json();
-
+        return data;
     } catch (error) {
-        return 'Erreur lors de la communication avec le serveur.';
+        console.error('Erreur lors de la communication avec le serveur:', error);
+        return { error: "Impossible de contacter le serveur" };
     }
 }
 
@@ -264,8 +268,12 @@ async function DemandePseudo() {
 
     try {
         const puuidData = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
-        console.log("Data", puuidData);
         const gamePuuid = puuidData.puuid;
+
+        if (puuidData.error) {
+            alert(puuidData.error.status.message || "Erreur inconnue");
+            throw new Error (puuidData.error.status.message || "Erreur inconnue");
+        }
 
         localStorage.setItem("gameName", gameName);
         localStorage.setItem("tagLine", tagLine);
@@ -273,6 +281,11 @@ async function DemandePseudo() {
 
         const summonerData = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
         console.log("Données du summoner reçues :", summonerData);
+       
+        if (summonerData.error) {
+            alert(puuidData.error.status.message || "Erreur inconnue");
+            throw new Error (puuidData.error.status.message || "Erreur inconnue");
+        }
 
         profileIconDiv.innerHTML = getPlayerIcon(summonerData.profileIconId);
         levelDiv.innerHTML = `${summonerData.summonerLevel}`;
@@ -282,6 +295,11 @@ async function DemandePseudo() {
         const leagueData = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerData.id)}`, 'GET');
         console.log("Données du classement du summoner reçues :", leagueData);
 
+        if (leagueData.error) {
+            alert(leagueData.error.status.message || "Erreur inconnue");
+            throw new Error (leagueData.error.status.message || "Erreur inconnue");
+        }
+        
         if (leagueData.length > 0) {
             const { tier, rank, leaguePoints } = leagueData[0];
             RankIconDiv.innerHTML = getRankIcon(tier);
@@ -317,6 +335,12 @@ async function RechercheHistorique() {
     const count = 10;
     try {
         const matchIds = await callAPI(`/proxy/lol/match/v5/matches/by-puuid/${encodeURIComponent(gamePuuid)}?count=${encodeURIComponent(count)}`,'GET');
+        
+        if (matchIds.error) {
+            alert(matchIds.error.status.message || "Erreur inconnue");
+            throw new Error (matchIds.error.status.message || "Erreur inconnue");
+        }
+
         const matches = [];
 
         for (let i = 0; i < matchIds.length; i++) {
@@ -325,8 +349,18 @@ async function RechercheHistorique() {
             // Récupération des détails du match
             const matchData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}`,'GET');
 
+            if (matchData.error) {
+                alert(matchData.error.status.message || "Erreur inconnue");
+                throw new Error (matchData.error.status.message || "Erreur inconnue");
+            }
+
             // Récupération de la timeline du match
             const timelineData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}/timeline`,'GET');
+
+            if (timelineData.error) {
+                alert(timelineData.error.status.message || "Erreur inconnue");
+                throw new Error (timelineData.error.status.message || "Erreur inconnue");
+            }
 
             matches.push({ matchData, timelineData });
 
@@ -527,6 +561,12 @@ async function RecherchePartie(Ouca) {
     const gameName = document.getElementById("ResearchgameName").value;
     const tagLine = document.getElementById("ResearchtagLine").value;    // URL pour récupérer le puuid
     const response = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
+    
+    if (response.error) {
+        alert(response.error.status.message || "Erreur inconnue");
+        throw new Error (response.error.status.message || "Erreur inconnue");
+    }
+    
     gamePuuid = response.puuid;
     console.log("Puuid reçu :", gamePuuid);
     localStorage.setItem("gameName", gameName);
@@ -536,12 +576,15 @@ async function RecherchePartie(Ouca) {
     try {
         const spectatorData = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
 
-        if (spectatorData.status === 404) {
+        if (spectatorData.httpStatus === 404) {
             alert("Aucune partie en cours pour ce summoner.");
             return null;
         }
-        
-        if (!spectatorData) return;
+
+        if (spectatorData.error) {
+            alert(spectatorData.error.status.message || "Erreur inconnue");
+            throw new Error (spectatorData.error.status.message || "Erreur inconnue");
+        }
 
         console.log("Données de la partie en cours :", spectatorData);
         const participants = spectatorData.participants;
@@ -645,21 +688,21 @@ async function RecherchePartie2(gamePuuid) {
     try {
         const response = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
 
-        // Vérification si la réponse n'est pas OK
-        if (!response.ok) {
-            // Si le code d'état est 404, le joueur n'est pas en partie
-            if (response.status === 404) {
-                return "Hors ligne"; // Pas de partie en cours
-            }
-            return { 'Erreur : ': await response.json() }; // Autres erreurs
+        if (response.httpStatus === 404) {
+            return ("Hors Ligne");
+        }
+
+        if (response.error) {
+            alert(response.error.status.message || "Erreur inconnue");
+            throw new Error (response.error.status.message || "Erreur inconnue");
         }
 
         // Si tout va bien et que le joueur est en partie
         return "En partie";
 
     } catch (error) {
-        // Erreur de communication ou autre
-        return "Hors ligne"; // On considère que le joueur est hors ligne en cas d'erreur
+        console.error('Erreur :', error);
+        alert('Erreur lors de l’envoi de la requête !');
     }
 }
 
@@ -677,6 +720,12 @@ async function RechercheMasteries() {
     try {
         
         const masteries = await callAPI(`/proxy/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+        
+        if (masteries.error) {
+            alert(masteries.error.status.message || "Erreur inconnue");
+            throw new Error (masteries.error.status.message || "Erreur inconnue");
+        }
+        
         console.log("Masteries reçues :", masteries);
 
         // Affichage des masteries
@@ -715,11 +764,28 @@ async function UpdateClassement() {
         await Promise.all(
             puuids.map(async (gamePuuid) => {
                 const accountResponse = await callAPI(`/proxy/riot/account/v1/accounts/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+                
+                if (accountResponse.error) {
+                    alert(accountResponse.error.status.message || "Erreur inconnue");
+                    throw new Error (accountResponse.error.status.message || "Erreur inconnue");
+                }
+                
                 const gameName = accountResponse.gameName;
                 const tagLine = accountResponse.tagLine;
                 const summonerResponse = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
                 
+                if (summonerResponse.error) {
+                    alert(summonerResponse.error.status.message || "Erreur inconnue");
+                    throw new Error (summonerResponse.error.status.message || "Erreur inconnue");
+                }
+
                 const leagueResponse = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerResponse.id)}`, 'GET');
+                
+                if (leagueResponse.error) {
+                    alert(leagueResponse.error.status.message || "Erreur inconnue");
+                    throw new Error (leagueResponse.error.status.message || "Erreur inconnue");
+                }
+
                 const summonerDetails = {
                     gamePuuid,
                     gameName,
@@ -739,6 +805,12 @@ async function UpdateClassement() {
                 }
                 console.log(summonerDetails);
                 response = await callAPI(`/maj-joueurs`, 'POST', (summonerDetails));
+
+                if (response.error) {
+                    alert(response.error.status.message || "Erreur inconnue");
+                    throw new Error (response.error.status.message || "Erreur inconnue");
+                }
+
             })
         );
 
@@ -746,6 +818,12 @@ async function UpdateClassement() {
 
         // Récupérer les joueurs mis à jour
         const joueurs = await callAPI('/recuperer-joueurs', 'GET');
+
+        if (joueurs.error) {
+            alert(joueurs.error.status.message || "Erreur inconnue");
+            throw new Error (joueurs.error.status.message || "Erreur inconnue");
+        }
+
         console.log(joueurs);
         // Trier les joueurs par classement
         const sortedPlayers = joueurs.sort(compareRanks);
@@ -784,8 +862,10 @@ async function UpdateClassement() {
 async function UpdateClassementBets() {
     try {
         const bets = await callAPI('/recuperer-classement', 'GET');
+
         if (bets.error) {
-            throw new Error('Erreur lors de la récupération des paris');
+            alert(bets.error.status.message || "Erreur inconnue");
+            throw new Error (bets.error.status.message || "Erreur inconnue");
         }
 
         const tbody = document.querySelector('#joueursTable tbody');
@@ -851,6 +931,11 @@ async function UpdateBets() {
         // Étape 1 : Récupérer les jeux en attente
         const pendingGames = await callAPI('/recuperer-games', 'GET');
 
+        if (pendingGames.error) {
+            alert(pendingGames.error.status.message || "Erreur inconnue");
+            throw new Error (pendingGames.error.status.message || "Erreur inconnue");
+        }
+        
         if (pendingGames.length === 0) {
             console.log('Aucun jeu en attente trouvé.');
         } 
@@ -861,9 +946,10 @@ async function UpdateBets() {
 
                 try {
                     const matchData = await callAPI(`/proxy/lol/match/v5/matches/${matchId}`, 'GET');
+
                     if (matchData.error) {
-                        console.log(`Game ${matchId} encore en cours ou non disponible.`);
-                        continue;
+                        alert(matchData.error.status.message || "Erreur inconnue");
+                        throw new Error (matchData.error.status.message || "Erreur inconnue");
                     }
 
                     let winnerTeamId = matchData.info.teams[0].win ? 100 : 200;
@@ -881,11 +967,10 @@ async function UpdateBets() {
                     const updateResponse = await callAPI('/maj-games', 'POST', matchDetails);
 
                     if (updateResponse.error) {
-                        console.error(`❌ Erreur lors de la mise à jour du jeu ${matchId}`);
-                    } else {
-                        console.log(`✅ Jeu ${matchId} mis à jour avec succès`);
+                        alert(updateResponse.error.status.message || "Erreur inconnue");
+                        throw new Error (updateResponse.error.status.message || "Erreur inconnue");
                     }
-
+                
                 } catch (error) {
                     console.log(`Game ${matchId} encore en cours ou non disponible.`);
                 }
@@ -894,14 +979,15 @@ async function UpdateBets() {
 
         // Étape 2 : Mise à jour des paris
         const updateBetsResponse = await callAPI('/maj-bets', 'POST');
+
         if (updateBetsResponse.error) {
-            console.error('Erreur lors de la mise à jour des paris.');
-            throw new Error('Erreur lors de la mise à jour des paris.');
-        } else {
-            console.log(`Paris mis à jour avec succès`);
-            // Une fois les paris mis à jour, on appelle UpdateClassementBets
-            UpdateClassementBets();  
+            alert(updateBetsResponse.error.status.message || "Erreur inconnue");
+            throw new Error (updateBetsResponse.error.status.message || "Erreur inconnue");
         }
+
+            console.log(`Paris mis à jour avec succès`);
+            UpdateClassementBets(); 
+
     } catch (error) {
         console.error('Erreur:', error);
     }
@@ -915,6 +1001,11 @@ async function AjoutJoueurs() {
         // Récupérer le puuid
         const gamePuuid = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
 
+        if (gamePuuid.error) {
+            alert(gamePuuid.error.status.message || "Erreur inconnue");
+            throw new Error (gamePuuid.error.status.message || "Erreur inconnue");
+        }
+        
         // Initialisation de l'objet Summoner
         const summonerDetails = {
             gamePuuid,
@@ -931,11 +1022,21 @@ async function AjoutJoueurs() {
         // Récupérer les détails du summoner
         const summonerData = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
         
+        if (summonerData.error) {
+            alert(summonerData.error.status.message || "Erreur inconnue");
+            throw new Error (summonerData.error.status.message || "Erreur inconnue");
+        }
+
         summonerDetails.summonerID = summonerData.id;
         summonerDetails.level = summonerData.summonerLevel;
         summonerDetails.profileIconId = summonerData.profileIconId;
 
         const leagueData = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`, 'GET');
+
+        if (leagueData.error) {
+            alert(leagueData.error.status.message || "Erreur inconnue");
+            throw new Error (leagueData.error.status.message || "Erreur inconnue");
+        }
 
         if (leagueData.length > 0) {
             summonerDetails.tier = leagueData[0].tier;
@@ -945,6 +1046,12 @@ async function AjoutJoueurs() {
 
         // Envoyer les données au backend pour ajout en base de données
         const response = await callAPI('/ajouter-joueurs', 'POST', summonerDetails);
+
+        if (response.error) {
+            alert(response.error.status.message || "Erreur inconnue");
+            throw new Error (response.error.status.message || "Erreur inconnue");
+        }
+
         console.log(response);
         UpdateClassement();
 
@@ -957,7 +1064,12 @@ async function AjoutJoueurs() {
 async function SupprimerJoueur(gamePuuid) {
     try {
         // Envoie une requête DELETE pour supprimer le joueur
-        await callAPI('/supprimer-joueurs', 'DELETE', { gamePuuid });
+        response = await callAPI('/supprimer-joueurs', 'DELETE', { gamePuuid });
+
+        if (response.error) {
+            alert(response.error.status.message || "Erreur inconnue");
+            throw new Error (response.error.status.message || "Erreur inconnue");
+        }
 
         // Supprimer la ligne de la table HTML
         const row = document.querySelector(`button[onclick="SupprimerJoueur('${gamePuuid}')"]`).closest('tr');
@@ -984,8 +1096,8 @@ async function Bets(ResultatParié) {
         const spectatorData = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
 
         if (spectatorData.error) {
-            alert("Aucune partie en cours pour ce summoner.");
-            return;
+            alert(spectatorData.error.status.message || "Erreur inconnue");
+            throw new Error (spectatorData.error.status.message || "Erreur inconnue");
         }
 
         const gameLengthInMinutes = spectatorData.gameLength / 60; // Convertir en minutes
@@ -1010,6 +1122,11 @@ async function Bets(ResultatParié) {
         // Ajouter la partie d'abord
         const gameResponse = await callAPI('/ajouter-games', 'POST', gameDetails);
 
+        if (gameResponse.error) {
+            alert(gameResponse.error.status.message || "Erreur inconnue");
+            throw new Error (gameResponse.error.status.message || "Erreur inconnue");
+        }
+
         console.log("Game ajoutée avec succès.");
 
         // Déterminer l'équipe en fonction du pari
@@ -1030,14 +1147,15 @@ async function Bets(ResultatParié) {
 
         // Envoi du pari
         const betResponse = await callAPI('/ajouter-bets', 'POST', BetsDetails);
+
         if (betResponse.error) {
-            alert(betResponse.message);
-            throw new Error(betResponse.message);
+            alert(betResponse.error.status.message || "Erreur inconnue");
+            throw new Error (betResponse.error.status.message || "Erreur inconnue");
         }
 
-        alert(betResponse.message);
-        console.log(betResponse.message);
 
+
+        alert(betResponse.message);
         // Mettre à jour le classement des paris
         UpdateClassementBets();
 
@@ -1065,6 +1183,12 @@ async function AfficherPopupGame(gameId) {
 
         // Récupération des détails du match
         const matchData = await callAPI(`/proxy/lol/match/v5/matches/${gameId}`, 'GET');
+        console.log(matchData);
+
+        if (matchData.error) {
+            alert(matchData.error.status.message || "Erreur inconnue");
+            throw new Error (matchData.error.status.message || "Erreur inconnue");
+        }
 
         if (!matchData) {
             console.error("❌ Erreur : Aucune donnée de match trouvée !");
@@ -1075,7 +1199,10 @@ async function AfficherPopupGame(gameId) {
         const allies = matchData.info.participants.filter(p => p.teamId === 100);
         const enemies = matchData.info.participants.filter(p => p.teamId === 200);
 
-        const teamHTML = (team, isAlly) =>
+        // 💡 A TOI DE DÉFINIR `isWinnerTeam100` ! (true si Team 100 a gagné, false sinon)
+        const isWinnerTeam100 = matchData.info.teams[0].win; // ➜ Remplace par ta logique pour vérifier qui a gagné
+
+        const teamHTML = (team, isWinner) =>
             `<div style="display: flex; justify-content: space-between; margin-top: 10px;">
                 ${team.map(participant => {
                     const { kills, deaths, assists, kda } = calculatePlayerStats(participant);
@@ -1088,10 +1215,10 @@ async function AfficherPopupGame(gameId) {
                         .join('');
 
                     return `
-                        <div style="border: 1px solid ${isAlly ? "green" : "red"}; border-radius: 10px; padding: 5px; margin-right: 30px; margin-left: 30px; text-align: center; width: 150px;">
+                        <div style="border: 2px solid ${isWinner ? "green" : "red"}; border-radius: 10px; padding: 5px; margin-right: 30px; margin-left: 30px; text-align: center; width: 150px;">
                             
-                            <strong>${participant.championName}</strong>
-                            <strong>${participant.riotIdGameName}${participant.riotIdTagline}</strong>
+                            <strong>${participant.riotIdGameName}#${participant.riotIdTagline}</strong>
+                            <br><strong>${participant.championName}</strong>
                             <br>${getChampionIcon(participant.championName)}
                             <br><strong>KDA:</strong> <span style="color: ${kdaColor};">${kda}</span>
                             <br><strong>Lane:</strong> ${participant.teamPosition || "Non spécifiée"}
@@ -1103,11 +1230,11 @@ async function AfficherPopupGame(gameId) {
                 }).join("")}
             </div>`;
 
-        // Mettre à jour uniquement la zone de détails avec les équipes
+        // ✅ Détermine quelle équipe est gagnante et affiche les couleurs en conséquence
         popupDetails.innerHTML = `
             <div>
-                <div><strong>Team 100</strong>${teamHTML(allies, true)}</div>
-                <div><strong>Team 200</strong>${teamHTML(enemies, false)}</div>
+                <div><strong>Team 100</strong>${teamHTML(allies, isWinnerTeam100)}</div>
+                <div><strong>Team 200</strong>${teamHTML(enemies, !isWinnerTeam100)}</div>
             </div>
         `;
 
