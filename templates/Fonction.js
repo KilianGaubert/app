@@ -1061,6 +1061,68 @@ async function AjoutJoueurs() {
     }
 }
 
+async function AjoutJoueurs2(gameName, tagLine) {
+    try {
+        // Récupérer le puuid
+        const response1 = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
+        if (response1.error) {
+            alert(response1.error.status.message || "Erreur inconnue");
+            throw new Error (response1.error.status.message || "Erreur inconnue");
+        }
+
+        gamePuuid = response1.puuid
+        // Initialisation de l'objet Summoner
+        const summonerDetails = {
+            gamePuuid,
+            gameName,
+            tagLine,
+            summonerID: null,
+            level: null,
+            profileIconId: null,
+            tier: null,
+            rank: null,
+            leaguePoints: null
+        };
+
+        // Récupérer les détails du summoner
+        const summonerData = await callAPI(`/proxy/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(gamePuuid)}`, 'GET');
+        console.log(summonerData)
+        if (summonerData.error) {
+            alert(summonerData.error.status.message || "Erreur inconnue");
+            throw new Error (summonerData.error.status.message || "Erreur inconnue");
+        }
+
+        summonerDetails.summonerID = summonerData.id;
+        summonerDetails.level = summonerData.summonerLevel;
+        summonerDetails.profileIconId = summonerData.profileIconId;
+
+        const leagueData = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerDetails.summonerID)}`, 'GET');
+        console.log(leagueData)
+        if (leagueData.error) {
+            alert(leagueData.error.status.message || "Erreur inconnue");
+            throw new Error (leagueData.error.status.message || "Erreur inconnue");
+        }
+
+        if (leagueData.length > 0) {
+            summonerDetails.tier = leagueData[0].tier;
+            summonerDetails.rank = leagueData[0].rank;
+            summonerDetails.leaguePoints = leagueData[0].leaguePoints;
+        }
+
+        // Envoyer les données au backend pour ajout en base de données
+        const response = await callAPI('/ajouter-joueurs', 'POST', summonerDetails);
+        console.log(response)
+        if (response.error) {
+            alert(response.error.status.message || "Erreur inconnue");
+            throw new Error (response.error.status.message || "Erreur inconnue");
+        }
+        alert('Joueur ajouté :)');
+    } catch (error) {
+        console.error("Erreur :", error);
+        alert('Erreur lors de la récupération des données !');
+    }
+}
+
 async function SupprimerJoueur(gamePuuid) {
     try {
         // Envoie une requête DELETE pour supprimer le joueur
@@ -1085,12 +1147,12 @@ async function SupprimerJoueur(gamePuuid) {
 
 async function Bets(ResultatParié) {
     const gamePuuid = localStorage.getItem("gamePuuid");
-
+    const JoueursgamePuuid = localStorage.getItem("JoueursgamePuuid") || "Aucun Puuid";
     if (!gamePuuid) {
         alert('Aucun PUUID trouvé !');
         return;
     }
-
+    console.log(JoueursgamePuuid)
     try {
         // Récupération des infos de la partie en cours
         const spectatorData = await callAPI(`/proxy/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(gamePuuid)}`, 'GET');
@@ -1137,9 +1199,8 @@ async function Bets(ResultatParié) {
             alert('Veuillez entrer un montant de pari valide.');
             return;
         }
-
         const BetsDetails = {
-            gamePuuidJoueur: '-prqPWGkcMKQa17zifBRuowuf2X2dHssiQ93wca4tUIjfVigDEx6RhdhvYDJVyye4WGPV6Cb5QLOAA',
+            gamePuuidJoueur: JoueursgamePuuid,
             gameId: spectatorData.gameId,
             bet_amount: betAmount,
             bet_teamId: bet_teamId,
@@ -1240,5 +1301,99 @@ async function AfficherPopupGame(gameId) {
 
     } catch (error) {
         console.error("❌ Erreur:", error);
+    }
+}
+
+// Fonction pour ouvrir le popup
+function openPopup(HTML) {
+    document.getElementById(HTML).style.display = "flex";
+}
+
+// Fonction pour fermer le popup
+function closePopup(HTML) {
+    document.getElementById(HTML).style.display = "none";
+}
+
+async function ConnexionJoueurs(gameName, tagLine) {
+    const Details = {
+        gameName,
+        tagLine
+    };
+console.log(Details)
+    try {
+        const response = await callAPI('/recuperer-gamepuuid', 'POST', Details);
+
+        // Vérification si la réponse contient le gamePuuid
+        if (response.gamePuuid) {
+            // Enregistrer les informations dans localStorage
+            localStorage.setItem("JoueursgameName", gameName);
+            localStorage.setItem("JoueurstagLine", tagLine);
+            localStorage.setItem("JoueursgamePuuid", response.gamePuuid);
+
+            // Afficher gameName et tagLine dans la div PageLeft
+            const JoueursConnexion = document.getElementById('JoueursConnexion');
+            alert('Joueur connecté :)');
+            if (JoueursConnexion) {
+                JoueursConnexion.innerHTML = `
+                    <p><strong>GameName:</strong> ${gameName}</p>
+                    <p><strong>TagLine:</strong> ${tagLine}</p>
+                `;
+            } else {
+                console.error('Erreur : La div PageLeft n\'a pas été trouvée');
+            }
+        } else {
+            alert('Joueur non trouvé');
+            console.error('Erreur: Aucun gamePuuid trouvé pour ce joueur');
+        }
+    } catch (error) {
+        console.error('Erreur lors de la connexion:', error);
+    }
+}
+
+function DeconnexionJoueurs() {
+    // Supprimer les informations de l'utilisateur du localStorage
+    localStorage.removeItem('JoueursgameName');
+    localStorage.removeItem('JoueurstagLine');
+    localStorage.removeItem('JoueursgamePuuid');
+
+    // Mettre à jour la div pour afficher le message de déconnexion
+    const joueursConnexionDiv = document.getElementById('JoueursConnexion');
+    
+    if (joueursConnexionDiv) {
+        alert('Joueur déconnecté');
+        joueursConnexionDiv.innerHTML = `
+            <p><strong>Utilisateur non connecté</strong></p>
+        `;
+    } else {
+        console.error('Erreur : La div JoueursConnexion n\'a pas été trouvée');
+    }
+}
+
+// Fonction pour afficher les infos de l'utilisateur dans le div JoueursConnexion
+function afficherInfosUtilisateur() {
+    // Récupérer les informations depuis localStorage
+    const gameName = localStorage.getItem('JoueursgameName');
+    const tagLine = localStorage.getItem('JoueurstagLine');
+    const gamePuuid = localStorage.getItem('JoueursgamePuuid');
+    console.log (gamePuuid)
+    const joueursConnexionDiv = document.getElementById('JoueursConnexion');
+    // Vérifier si les informations existent dans localStorage
+    if (gameName && tagLine && gamePuuid) {
+
+        if (joueursConnexionDiv) {
+            joueursConnexionDiv.innerHTML = `
+            <p><strong>GameName:</strong> ${gameName}</p>
+            <p><strong>TagLine:</strong> ${tagLine}</p>
+        `
+            // Afficher les informations dans le HTML
+        } else {
+            console.error('Erreur : La div JoueursConnexion n\'a pas été trouvée');
+        }
+    } else {
+        console.log("ICI");
+        joueursConnexionDiv.innerHTML = `
+        <p><strong>Utilisateur non connecté</strong></p>
+    `;
+
     }
 }

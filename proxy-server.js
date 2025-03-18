@@ -224,6 +224,8 @@ app.post('/ajouter-joueurs', (req, res) => {
     });
 });
 
+
+
 app.delete('/supprimer-joueurs', (req, res) => {
     const gamePuuid = req.params.gamePuuid;
 
@@ -295,7 +297,6 @@ app.get('/recuperer-joueurs', (req, res) => {
 });
 
 app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
-    
     db.query('SELECT gamePuuid FROM joueurs', (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur avec la base de données' });
@@ -306,6 +307,31 @@ app.get('/recuperer-joueurs-gamePuuid', (req, res) => {
 
     });
 });
+
+app.post('/recuperer-gamepuuid', (req, res) => {
+    const { gameName, tagLine } = req.body; // Extraire les valeurs du body
+
+    if (!gameName || !tagLine) {
+        return res.status(400).json({ message: 'Le gameName et le tagLine sont requis' });
+    }
+
+    // Requête pour récupérer le gamePuuid à partir de gameName et tagLine
+    const query = 'SELECT gamePuuid FROM joueurs WHERE gameName = ? AND tagLine = ?';
+
+    db.query(query, [gameName, tagLine], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Joueur non trouvé' });
+        }
+
+        // Retourner le gamePuuid du joueur
+        res.json({ gamePuuid: results[0].gamePuuid });
+    });
+});
+
 
 //BDD BETS//
 

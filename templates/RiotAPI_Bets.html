@@ -19,7 +19,6 @@
     tagLine = localStorage.getItem("tagLine") || "Aucune tagline";
     // Exécution des fonctions après le chargement du script
     document.addEventListener("DOMContentLoaded", function() {
-        
         appelHeader_Bets(() => {
             document.getElementById("ResearchgameName").value = localStorage.getItem("gameName") || "";
             document.getElementById("ResearchtagLine").value = localStorage.getItem("tagLine") || "";
@@ -29,7 +28,8 @@
 
 async function initialize() {
     await UpdateBets();        // Attend que la mise à jour des paris soit terminée
-    UpdateClassementBets();     // Ensuite, met à jour le classement des paris
+    UpdateClassementBets();  // Ensuite, met à jour le classement des paris
+    afficherInfosUtilisateur();
 }
 
 // Cette fonction est une "wrapper" pour appeler initialize() sans problème de promesse
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startInitialize();
 });
 
-// Exécuter startInitialize toutes les 100 000 ms (100 secondes)
+  // Afficher les informations utilisateur
 setInterval(startInitialize, 10000);
 
 </script>
