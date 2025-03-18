@@ -3,6 +3,7 @@ const cors = require('cors');
 const mysql = require('mysql');
 const dotenv = require('dotenv');
 const path = require('path');
+const Buffer = require('buffer').Buffer; // Pour encoder en base64
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_NAME = process.env.DB_NAME;
+const clientId = process.env.clientId;
+const secret = process.env.secret;
+
 
 // Active CORS pour toutes les routes
 app.use(cors());
@@ -47,6 +51,16 @@ app.get('/RiotAPI_Parties', (req, res) => {
 // ✅ Corrige la route pour afficher le fichier HTML
 app.get('/RiotAPI_Masteries', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Masteries.html'));
+});
+
+// ✅ Corrige la route pour afficher le fichier HTML
+app.get('/RiotAPI_Paypal', (req, res) => {
+    res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Paypal.html'));
+});
+
+// ✅ Corrige la route pour afficher le fichier HTML
+app.get('/RiotAPI_Paypal2', (req, res) => {
+    res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Paypal2.html'));
 });
 
 // Fonction utilitaire pour faire une requête externe
@@ -189,7 +203,7 @@ app.get('/proxy/lol/match/v5/matches/:matchId/timeline', async (req, res) => {
 
 app.post('/ajouter-joueurs', (req, res) => {
     const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints } = req.body;
-
+    const balance = 0;
     // Vérifie si gamePuuid est bien présent dans la requête
     if (!gamePuuid) {
         return res.status(400).json({ message: 'gamePuuid manquant' });
@@ -213,7 +227,10 @@ app.post('/ajouter-joueurs', (req, res) => {
             return res.status(400).json({ message: 'Le summoner avec ce gamePuuid existe déjà dans la base de données.' });
         }
 
-    db.query('INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, \`rank\`, leaguePoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints], (err, results) => {
+        db.query(
+            'INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, `rank`, leaguePoints, balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+            [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints, balance], 
+            (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
@@ -223,8 +240,6 @@ app.post('/ajouter-joueurs', (req, res) => {
         });
     });
 });
-
-
 
 app.delete('/supprimer-joueurs', (req, res) => {
     const gamePuuid = req.params.gamePuuid;
@@ -331,6 +346,111 @@ app.post('/recuperer-gamepuuid', (req, res) => {
         res.json({ gamePuuid: results[0].gamePuuid });
     });
 });
+
+app.post('/recuperer-balance', (req, res) => {
+    const { gameName, tagLine } = req.body; // Extraire les valeurs du body
+
+    if (!gameName || !tagLine) {
+        return res.status(400).json({ message: 'Le gameName et le tagLine sont requis' });
+    }
+
+    // Requête pour récupérer le gamePuuid à partir de gameName et tagLine
+    const query = 'SELECT balance FROM joueurs WHERE gameName = ? AND tagLine = ?';
+
+    db.query(query, [gameName, tagLine], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Joueur non trouvé' });
+        }
+
+        // Retourner le gamePuuid du joueur
+        res.json({ balance: results[0].balance });
+    });
+});
+
+app.post('/ajouter-balance', (req, res) => {
+    const { gamePuuid, amount } = req.body;
+
+    if (!gamePuuid || !amount) {
+        return res.status(400).json({ message: '❌ gamePuuid ou amount manquant' });
+    }
+
+    // Démarre une transaction
+    db.beginTransaction((err) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur de transaction' });
+        }
+
+        // Vérifier si le gamePuuid existe déjà dans la base de données
+        db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+            if (err) {
+                return db.rollback(() => {
+                    res.status(500).json({ message: 'Erreur avec la base de données' });
+                });
+            }
+
+            if (results.length === 0) {
+                return db.rollback(() => {
+                    res.status(404).json({ message: '❌ Summoner introuvable, mise à jour impossible.' });
+                });
+            }
+
+            // Récupérer la balance actuelle
+            const currentBalance = results[0].balance;
+
+            // Ajouter le montant à la balance actuelle
+            const newBalance = currentBalance + parseFloat(amount);
+
+            // Mise à jour de la balance dans la base de données
+            const updateQuery = `
+                UPDATE joueurs 
+                SET balance = ? 
+                WHERE gamePuuid = ?
+            `;
+
+            db.query(updateQuery, [newBalance, gamePuuid], (err, results) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ message: 'Erreur avec la mise à jour de la balance' });
+                    });
+                }
+
+                // Ajouter une transaction dans la table transactions
+                const transactionQuery = `
+                    INSERT INTO transactions (gamePuuid, transaction_type, amount) 
+                    VALUES (?, ?, ?)
+                `;
+
+                db.query(transactionQuery, [gamePuuid, 'paypal_deposit', amount], (err, results) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            res.status(500).json({ message: 'Erreur avec l\'ajout de la transaction' });
+                        });
+                    }
+
+                    // Commit la transaction si tout se passe bien
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                res.status(500).json({ message: 'Erreur lors du commit de la transaction' });
+                            });
+                        }
+
+                        // Réponse finale
+                        res.status(200).json({
+                            message: `✅ Balance mise à jour avec succès ! Nouveau solde : ${newBalance}`,
+                            transactionMessage: '✅ Transaction ajoutée avec succès'
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
 
 
 //BDD BETS//
@@ -679,6 +799,92 @@ app.get('/recuperer-classement', (req, res) => {
     });
 });
 
+//PAYPAL//
+
+app.post('/paypal/create-order', async (req, res) => {
+    const { amount } = req.body; // Le montant à payer (en USD)
+    const returnUrl = 'https://tonsite.com/confirmation-paiement';  // URL de retour
+
+    try {
+        const accessToken = await getAccessToken(); // Récupérer le token d'accès
+
+        const response = await fetch('https://api.sandbox.paypal.com/v2/checkout/orders', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                intent: 'CAPTURE',
+                purchase_units: [{
+                    amount: {
+                        currency_code: 'EUR',
+                        value: amount,
+                    },
+                }],
+                application_context: {
+                    return_url: 'http://localhost:5000/paypal/success',  // Ajouter l'URL de retour ici
+                    cancel_url: 'http://localhost:5000/RiotAPI_Paypal', // URL si l'utilisateur annule le paiement
+                },
+            }),
+        });
+
+        const data = await response.json();
+        
+        if (data.id) {
+            // Retourner l'ID de la commande et l'URL d'approbation
+            res.json({
+                orderId: data.id,
+                approvalUrl: data.links.find(link => link.rel === 'approve').href,
+            });
+        } else {
+            res.status(500).json({ message: 'Erreur lors de la création de la commande PayPal' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// Endpoint pour capturer le paiement après approbation de l'utilisateur
+app.post('/paypal/capture-payment', async (req, res) => {
+    const { orderId } = req.body;
+
+    try {
+        const accessToken = await getAccessToken(); // Récupérer le token d'accès
+
+        const response = await fetch(`https://api.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+
+        if (data.status === 'COMPLETED') {
+            res.json({ message: 'Paiement réussi', data });
+        } else {
+            res.status(500).json({ message: 'Erreur lors de la capture du paiement PayPal' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+app.get('/paypal/success', (req, res) => {
+    const orderId = req.query.token; // PayPal retourne l'ID de commande sous "token"
+
+    if (!orderId) {
+        return res.redirect('/paiement.html?error=missing_order');
+    }
+
+    // Redirige l'utilisateur vers la page de confirmation avec l'orderId
+    res.redirect(`http://localhost:5000/RiotAPI_Paypal2?orderId=${orderId}`);
+});
+
+
 function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
 
     const connection = mysql.createConnection({
@@ -699,6 +905,24 @@ function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
 }
 
 const db = ConnexionBDD(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+
+
+
+// Fonction pour récupérer un token d'accès OAuth2 depuis PayPal
+async function getAccessToken() {
+    const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
+    
+    const response = await fetch('https://api.sandbox.paypal.com/v1/oauth2/token', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+    });
+    const data = await response.json();
+    return data.access_token;
+}
 
 // Démarrage du serveur
 app.listen(PORT, () => {

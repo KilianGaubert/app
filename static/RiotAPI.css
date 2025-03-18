@@ -22,22 +22,65 @@ Button:hover {
     background-color: #8a8a8a;
     padding: 10px;
     border-radius: 4px;
-    width: 100%;
     margin-top: 10px;
 }
 #betsInfo{
     background-color: #8a8a8a;
     padding: 10px;
     border-radius: 4px;
-    width: 100%;
 }
 
-#Joueurs{
+#JoueursConnexion{
+    display: flex;
+    border-radius: 4px;
+    text-align: left; /* Aligne le texte à gauche */
+    align-items: center; /* Alignement vertical */
+}
+
+
+#TopPage{
+    display: flex;
     margin-bottom: 10px;
     background-color: #8a8a8a;
+    border-radius: 4px;
+    text-align: left; /* Aligne le texte à gauche */
+    align-items: center; /* Alignement vertical */
+}
+
+#ButtonConnexion{
+    display: flex;
+    border-radius: 4px;
+    padding: 10px;
+    align-items: center; /* Alignement vertical */
+    gap: 10px;
+}
+
+#ButtonConnexionContainer {
+    display: flex;
+    width: 100%; /* Prend toute la largeur disponible */
+    border-radius: 4px;
+    align-items: center; /* Alignement vertical */
+    justify-content: flex-end; /* Aligne les éléments à droite */
+}
+
+
+
+#PlayerInfo {
+    display: flex;
     padding: 10px;
     border-radius: 4px;
-    width: 100%;
+    align-items: center;
+}
+
+
+/* Style des champs de saisie */
+input[type="text"] {
+    width: 100%; /* Prend toute la largeur disponible */
+    padding: 10px;
+    margin-bottom: 10px; /* Espacement entre les champs */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
 }
 
 /* Partie gauche (sidebar fixe) */
@@ -215,6 +258,18 @@ Button:hover {
     font-weight: bold;
     border: none;
     padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.Button2 {
+    background: #ce0000;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    padding: 10px 10px;
     border-radius: 4px;
     cursor: pointer;
     text-transform: uppercase;

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation de paiement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #status {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Confirmation de paiement</h1>
+    <p>Vérification de votre paiement en cours...</p>
+    
+    <div id="status">🔄 Vérification en cours...</div>
+
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Confirmation de Paiement</title>
+    </head>
+    <body>
+        <h1>Vérification du paiement PayPal</h1>
+    
+        <div id="status">Vérification en cours...</div>
+    
+        <script>
+            async function verifyPayment() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const orderId = urlParams.get('orderId'); // Récupère l'ID de la commande PayPal
+    
+                if (!orderId) {
+                    document.getElementById("status").innerHTML = "❌ Aucune transaction trouvée.";
+                    return;
+                }
+    
+                try {
+                    const response = await fetch('/paypal/capture-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+    
+                    const data = await response.json();
+                    console.log(data);
+    
+                    if (data.message === 'Paiement réussi') {
+                        document.getElementById("status").innerHTML = "✅ Paiement confirmé !";
+    
+                        // Récupérer le montant du paiement depuis la réponse PayPal
+                        const amount = data.purchase_units[0].payments.captures[0].amount.value;// Assure-toi que `data.transaction.amount` existe dans la réponse
+    
+                        // Exemple d'informations nécessaires pour la route ajouter-balance
+                        const gamePuuid = localStorage.getItem('JoueursgamePuuid');  // Remplace avec l'ID du joueur
+    
+                        // Appel à la route /ajouter-balance pour ajouter de la balance
+                        const balanceResponse = await fetch('/ajouter-balance', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ gamePuuid, amount })
+                        });
+    
+                        const balanceData = await balanceResponse.json();
+                        if (balanceData.message) {
+                            alert(balanceData.message); // Afficher la réponse de la mise à jour de balance
+                        }
+    
+                        setTimeout(() => {
+                            window.location.href = 'http://localhost:5000/RiotAPI_Bets'; // Rediriger vers le profil
+                        }, 3000);
+                    } else {
+                        document.getElementById("status").innerHTML = "❌ Paiement non confirmé.";
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de la vérification du paiement :", error);
+                    document.getElementById("status").innerHTML = "❌ Erreur lors de la vérification.";
+                }
+            }
+    
+            // Appel de la fonction lors du chargement de la page
+            window.onload = verifyPayment;
+        </script>
+    </body>
+    </html>
+    
+
+</body>
+</html>

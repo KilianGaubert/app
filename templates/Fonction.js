@@ -582,8 +582,8 @@ async function RecherchePartie(Ouca) {
         }
 
         if (spectatorData.error) {
-            alert(spectatorData.error.status.message || "Erreur inconnue");
-            throw new Error (spectatorData.error.status.message || "Erreur inconnue");
+            alert(spectatorData.error.message || "Erreur inconnue");
+            throw new Error (spectatorData.status.message || "Erreur inconnue");
         }
 
         console.log("Données de la partie en cours :", spectatorData);
@@ -693,8 +693,8 @@ async function RecherchePartie2(gamePuuid) {
         }
 
         if (response.error) {
-            alert(response.error.status.message || "Erreur inconnue");
-            throw new Error (response.error.status.message || "Erreur inconnue");
+            alert(response.error.message || "Erreur inconnue");
+            throw new Error (response.error.message || "Erreur inconnue");
         }
 
         // Si tout va bien et que le joueur est en partie
@@ -780,10 +780,9 @@ async function UpdateClassement() {
                 }
 
                 const leagueResponse = await callAPI(`/proxy/lol/league/v4/entries/by-summoner/${encodeURIComponent(summonerResponse.id)}`, 'GET');
-                
                 if (leagueResponse.error) {
-                    alert(leagueResponse.error.status.message || "Erreur inconnue");
-                    throw new Error (leagueResponse.error.status.message || "Erreur inconnue");
+                    alert(leagueResponse.error.message || "Erreur inconnue");
+                    throw new Error (leagueResponse.error.message || "Erreur inconnue");
                 }
 
                 const summonerDetails = {
@@ -1145,6 +1144,7 @@ async function SupprimerJoueur(gamePuuid) {
     }
 }
 
+
 async function Bets(ResultatParié) {
     const gamePuuid = localStorage.getItem("gamePuuid");
     const JoueursgamePuuid = localStorage.getItem("JoueursgamePuuid") || "Aucun Puuid";
@@ -1322,25 +1322,16 @@ async function ConnexionJoueurs(gameName, tagLine) {
 console.log(Details)
     try {
         const response = await callAPI('/recuperer-gamepuuid', 'POST', Details);
-
+        const response2 = await callAPI('/recuperer-balance', 'POST', Details);
         // Vérification si la réponse contient le gamePuuid
         if (response.gamePuuid) {
             // Enregistrer les informations dans localStorage
             localStorage.setItem("JoueursgameName", gameName);
             localStorage.setItem("JoueurstagLine", tagLine);
             localStorage.setItem("JoueursgamePuuid", response.gamePuuid);
-
-            // Afficher gameName et tagLine dans la div PageLeft
-            const JoueursConnexion = document.getElementById('JoueursConnexion');
+            localStorage.setItem("Joueursbalance", response2.balance);
             alert('Joueur connecté :)');
-            if (JoueursConnexion) {
-                JoueursConnexion.innerHTML = `
-                    <p><strong>GameName:</strong> ${gameName}</p>
-                    <p><strong>TagLine:</strong> ${tagLine}</p>
-                `;
-            } else {
-                console.error('Erreur : La div PageLeft n\'a pas été trouvée');
-            }
+            afficherInfosUtilisateur();
         } else {
             alert('Joueur non trouvé');
             console.error('Erreur: Aucun gamePuuid trouvé pour ce joueur');
@@ -1355,18 +1346,8 @@ function DeconnexionJoueurs() {
     localStorage.removeItem('JoueursgameName');
     localStorage.removeItem('JoueurstagLine');
     localStorage.removeItem('JoueursgamePuuid');
-
-    // Mettre à jour la div pour afficher le message de déconnexion
-    const joueursConnexionDiv = document.getElementById('JoueursConnexion');
-    
-    if (joueursConnexionDiv) {
-        alert('Joueur déconnecté');
-        joueursConnexionDiv.innerHTML = `
-            <p><strong>Utilisateur non connecté</strong></p>
-        `;
-    } else {
-        console.error('Erreur : La div JoueursConnexion n\'a pas été trouvée');
-    }
+    localStorage.removeItem('Joueursbalance');
+    afficherInfosUtilisateur();
 }
 
 // Fonction pour afficher les infos de l'utilisateur dans le div JoueursConnexion
@@ -1375,25 +1356,28 @@ function afficherInfosUtilisateur() {
     const gameName = localStorage.getItem('JoueursgameName');
     const tagLine = localStorage.getItem('JoueurstagLine');
     const gamePuuid = localStorage.getItem('JoueursgamePuuid');
+    const balance = localStorage.getItem('Joueursbalance');
     console.log (gamePuuid)
-    const joueursConnexionDiv = document.getElementById('JoueursConnexion');
+    const ButtonConnexionDiv = document.getElementById('ButtonConnexion');
+    const PlayerInfoDiv = document.getElementById('PlayerInfo');
     // Vérifier si les informations existent dans localStorage
     if (gameName && tagLine && gamePuuid) {
-
-        if (joueursConnexionDiv) {
-            joueursConnexionDiv.innerHTML = `
-            <p><strong>GameName:</strong> ${gameName}</p>
-            <p><strong>TagLine:</strong> ${tagLine}</p>
+        ButtonConnexionDiv.innerHTML = `
+        <Button onclick="DeconnexionJoueurs()" class="Button2">Deconnexion</Button>
         `
-            // Afficher les informations dans le HTML
-        } else {
-            console.error('Erreur : La div JoueursConnexion n\'a pas été trouvée');
-        }
+        PlayerInfoDiv.innerHTML = `
+        <p>${gameName}#${tagLine}<br>balance : ${balance}</p>
+        `
+
     } else {
-        console.log("ICI");
-        joueursConnexionDiv.innerHTML = `
-        <p><strong>Utilisateur non connecté</strong></p>
-    `;
+        ButtonConnexionDiv.innerHTML = `
+        <Button onclick="openPopup('registerPopup')" class="Button2">Sign up</Button>
+        <Button onclick="openPopup('connexionPopup')" class="Button2">Connexion</Button>
+    `
+        PlayerInfoDiv.innerHTML = `
+        <strong>Utilisateur non connecté</strong>
+        `
+    ;
 
     }
 }

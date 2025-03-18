@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement PayPal</title>
+</head>
+<body>
+    <h1>Payer avec PayPal</h1>
+    <button id="payButton">Payer avec PayPal</button>
+
+    <script>
+        // Fonction qui gère le paiement
+        document.getElementById('payButton').addEventListener('click', async () => {
+            const amount = 1.00; // Exemple de montant (5 EUR)
+
+            try {
+                // Demander au serveur de créer une commande PayPal
+                const response = await fetch('/paypal/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amount })
+                });
+
+                const data = await response.json();
+
+                if (data.orderId && data.approvalUrl) {
+                    // Rediriger l'utilisateur vers PayPal pour approuver le paiement
+                    window.location.href = data.approvalUrl;
+                } else {
+                    alert('Erreur lors de la création de la commande');
+                }
+            } catch (error) {
+                console.error('Erreur lors de la création de la commande PayPal', error);
+            }
+        });
+
+        // Vérifie si l'utilisateur revient de PayPal avec un orderId
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('orderId');
+
+            if (orderId) {
+                // Redirige vers la page de confirmation après l'approbation
+                window.location.href = `/paypal/capture-payment?orderId=${orderId}`;
+            }
+        };
+    </script>
+</body>
+</html>

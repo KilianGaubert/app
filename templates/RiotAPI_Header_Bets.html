@@ -1,22 +1,32 @@
 <div id="PageLeft" class="PageLeft">
-    <div id="Joueurs" class="Joueurs">
-        <button onclick="openPopup('registerPopup')">Créer un compte !</button>
-        <button onclick="openPopup('connexionPopup')">Connecte toi abruti !</button>
-        <button onclick="DeconnexionJoueurs()">Deconnexion</button>
+
+    <div id="TopPage" class="TopPage">
         <div id="JoueursConnexion" class="JoueursConnexion">
+            <div id="PlayerInfo" class="PlayerInfo">
+            </div>
+        </div>
+        <div id="ButtonConnexionContainer" class="ButtonConnexionContainer">
+            <div id="ButtonConnexion" class="ButtonConnexion">
+            </div>
         </div>
     </div>
 
 
+
     <div id="SummonerResearch" class="SummonerResearch">
-        <input type="text" id="ResearchgameName" placeholder="Entrez le Game Name">
-        <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
-    <button id="Ajout" onclick="RecherchePartie('BestGameInfo')" class="Button">Joueur parier</button>
+        <div id="RechercheGameInfo" class="RechercheGameInfo">
+            <input type="text" id="ResearchgameName" placeholder="Entrez le Game Name">
+            <input type="text" id="ResearchtagLine" placeholder="Entrez le Tag (ex: #EUW)">
+            <button id="Ajout" onclick="RecherchePartie('BestGameInfo')" class="Button">Trouver une partie</button>
+        </div> 
+        
+        <div id="BestGameInfo" class="BestGameInfo">
+
+        </div>        
     </div>
     <div id="Match_Bets" class="Match_Bets">
-        <div id="betsInfo" class="betsInfo">
-            <div id="BestGameInfo" class="BestGameInfo">
-            </div>            
+        <div id="betsInfo" class="betsInfo" display = "none">
+    
             <div id="Bets" class="Bets">
                 <input type="text" id="BetsPrice" placeholder="Combien voulez-vous parier ?">
                 <button id="BestVictoire" onclick="Bets('Victoire')" class="Button">Victoire</button>
@@ -72,10 +82,10 @@
     <div class="popup-content">
         <span class="close-btn" onclick="closePopup('registerPopup')">&times;</span>
         <form id="registerForm">
-            <input type="text" id="gameNameRegister" placeholder="GameName">
-            <input type="text" id="tagLineRegister" placeholder="TagLine">
+            <input type="text" id="gameNameRegister" placeholder="GameName" class="gameNameRegister">
+            <input type="text" id="tagLineRegister" placeholder="TagLine" class="tagLineRegister">
             <button type="button" onclick="AjoutJoueurs2(document.getElementById('gameNameRegister').value, document.getElementById('tagLineRegister').value)">
-                Créer ton compte
+                Sign up
             </button>
         </form>
     </div>
@@ -89,7 +99,7 @@
             <input type="text" id="gameNameConnexion" placeholder="GameName">
             <input type="text" id="tagLineConnexion" placeholder="TagLine">
             <button type="button" onclick="ConnexionJoueurs(document.getElementById('gameNameConnexion').value, document.getElementById('tagLineConnexion').value)">
-                Connecte toi a ton compte abruti
+                Connexion
             </button>
         </form>
     </div>
