@@ -4,6 +4,8 @@ const mysql = require('mysql');
 const dotenv = require('dotenv');
 const path = require('path');
 const Buffer = require('buffer').Buffer; // Pour encoder en base64
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
@@ -16,7 +18,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_NAME = process.env.DB_NAME;
 const clientId = process.env.clientId;
 const secret = process.env.secret;
-
+const JWT_SECRET = process.env.JWT_SECRET || 'superSecretKey123';
 
 // Active CORS pour toutes les routes
 app.use(cors());
@@ -63,23 +65,56 @@ app.get('/RiotAPI_Paypal2', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Paypal2.html'));
 });
 
-// Fonction utilitaire pour faire une requête externe
-async function fetchRiotAPI(url) {
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'X-Riot-Token': RIOT_API_TOKEN, // Utilisez la variable globale
+// Fonction utilitaire pour faire une requête avec gestion du rate limit
+async function fetchRiotAPI(url, retries = 5, delay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Riot-Token': RIOT_API_TOKEN,
+                }
+            });
+
+            const data = await response.json();
+
+            // Vérifier si Riot API retourne un rate limit (429)
+            if (response.status === 429) {
+                const retryAfter = response.headers.get('Retry-After');
+                const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay * attempt; // Si "Retry-After" est disponible, on l'utilise
+                console.warn(`Rate limit Riot API atteint. Nouvelle tentative dans ${waitTime / 1000} secondes...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue; // Réessayer la requête
             }
-        });
-        return await response.json();
-    } 
-    
-    catch (error) {
-        console.error('Erreur lors de la requête API Riot:', error.message);
-        throw error;
+
+            return data; // Retourner les données si tout va bien
+        } catch (error) {
+            console.error(`Erreur lors de la requête Riot API (tentative ${attempt}/${retries}):`, error.message);
+            
+            if (attempt < retries) {
+                await new Promise(resolve => setTimeout(resolve, delay * attempt)); // Attente exponentielle
+            } else {
+                throw new Error("Impossible de contacter l'API Riot après plusieurs tentatives.");
+            }
+        }
     }
 }
+
+const authenticateToken = (req, res, next) => {
+    const token = req.header('Authorization');
+
+    if (!token) {
+        return res.status(401).json({ message: 'Accès refusé, token manquant' });
+    }
+
+    try {
+        const decoded = jwt.verify(token.split(" ")[1], JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(403).json({ message: 'Token invalide' });
+    }
+};
 
 //RIOT//
 
@@ -201,43 +236,42 @@ app.get('/proxy/lol/match/v5/matches/:matchId/timeline', async (req, res) => {
 
 //BDD JOUEURS//
 
-app.post('/ajouter-joueurs', (req, res) => {
-    const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints } = req.body;
+app.post('/ajouter-joueurs', async (req, res) => {
+    const { gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints, password } = req.body;
     const balance = 0;
-    // Vérifie si gamePuuid est bien présent dans la requête
-    if (!gamePuuid) {
-        return res.status(400).json({ message: 'gamePuuid manquant' });
-    }
 
-    // Vérifie si les autres informations sont présentes (facultatif, mais c'est une bonne pratique)
-    if (!gameName || !tagLine || !summonerID || !level || !profileIconId) {
+    if (!gamePuuid || !gameName || !tagLine || !summonerID || !level || !profileIconId || !password) {
         return res.status(400).json({ message: 'Des informations sont manquantes' });
     }
 
     // Vérifier si le gamePuuid existe déjà dans la base de données
-
-    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
-
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], async (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur avec la base de données' });
         }
 
-        // Si le gamePuuid existe déjà, retourner une erreur
         if (results.length > 0) {
             return res.status(400).json({ message: 'Le summoner avec ce gamePuuid existe déjà dans la base de données.' });
         }
 
-        db.query(
-            'INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, `rank`, leaguePoints, balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-            [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints, balance], 
-            (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        try {
+            // Hachage du mot de passe
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Insertion du joueur avec le mot de passe haché
+            db.query(
+                'INSERT INTO joueurs (gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, `rank`, leaguePoints, balance, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [gamePuuid, gameName, tagLine, summonerID, level, profileIconId, tier, rank, leaguePoints, balance, hashedPassword],
+                (err, results) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Erreur avec la base de données' });
+                    }
+                    res.status(201).json({ message: '✅ Summoner ajouté avec succès !' });
+                }
+            );
+        } catch (error) {
+            res.status(500).json({ message: 'Erreur lors du hachage du mot de passe' });
         }
-
-        res.status(200).json('✅ Summoner ajouté avec succès !');
-
-        });
     });
 });
 
@@ -884,6 +918,35 @@ app.get('/paypal/success', (req, res) => {
     res.redirect(`http://localhost:5000/RiotAPI_Paypal2?orderId=${orderId}`);
 });
 
+app.post('/connexion', (req, res) => {
+    const { gamePuuid, password } = req.body;
+
+    // Vérifier si le gamePuuid existe dans la base de données
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], async (err, results) => {
+        if (err) return res.status(500).json({ message: 'Erreur avec la base de données' });
+
+        if (results.length === 0) {
+            return res.status(400).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        const user = results[0];
+
+        // Comparer le mot de passe
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: 'Mot de passe incorrect' });
+        }
+
+        // Générer le token JWT
+        const token = jwt.sign({ gamePuuid: user.gamePuuid }, JWT_SECRET, { expiresIn: '2h' });
+
+        // Retourner le token et autres informations (ex: balance)
+        res.status(200).json({
+            token,
+            balance: user.balance, // Retourne la balance du joueur
+        });
+    });
+});
 
 function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
 
@@ -905,8 +968,6 @@ function ConnexionBDD(host, utilisateur, motDePasse, baseDeDonnees) {
 }
 
 const db = ConnexionBDD(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
-
-
 
 // Fonction pour récupérer un token d'accès OAuth2 depuis PayPal
 async function getAccessToken() {

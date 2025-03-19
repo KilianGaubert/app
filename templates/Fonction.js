@@ -1060,7 +1060,7 @@ async function AjoutJoueurs() {
     }
 }
 
-async function AjoutJoueurs2(gameName, tagLine) {
+async function AjoutJoueurs2(gameName, tagLine, password) {
     try {
         // Récupérer le puuid
         const response1 = await callAPI(`/proxy/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, 'GET');
@@ -1080,7 +1080,8 @@ async function AjoutJoueurs2(gameName, tagLine) {
             profileIconId: null,
             tier: null,
             rank: null,
-            leaguePoints: null
+            leaguePoints: null,
+            password
         };
 
         // Récupérer les détails du summoner
@@ -1314,39 +1315,49 @@ function closePopup(HTML) {
     document.getElementById(HTML).style.display = "none";
 }
 
-async function ConnexionJoueurs(gameName, tagLine) {
-    const Details = {
-        gameName,
-        tagLine
-    };
-console.log(Details)
+async function ConnexionJoueurs(gameName, tagLine, password) {
     try {
-        const response = await callAPI('/recuperer-gamepuuid', 'POST', Details);
-        const response2 = await callAPI('/recuperer-balance', 'POST', Details);
-        // Vérification si la réponse contient le gamePuuid
-        if (response.gamePuuid) {
-            // Enregistrer les informations dans localStorage
-            localStorage.setItem("JoueursgameName", gameName);
-            localStorage.setItem("JoueurstagLine", tagLine);
-            localStorage.setItem("JoueursgamePuuid", response.gamePuuid);
-            localStorage.setItem("Joueursbalance", response2.balance);
-            alert('Joueur connecté :)');
-            afficherInfosUtilisateur();
-        } else {
+        // Récupérer le gamePuuid en fonction du gameName et tagLine
+        const response = await callAPI('/recuperer-gamepuuid', 'POST', { gameName, tagLine });
+
+        if (!response.gamePuuid) {
             alert('Joueur non trouvé');
             console.error('Erreur: Aucun gamePuuid trouvé pour ce joueur');
+            return;
+        }
+
+        const gamePuuid = response.gamePuuid;
+
+        // Envoyer gamePuuid et password pour authentification
+        const loginResponse = await callAPI('/connexion', 'POST', { gamePuuid, password });
+
+        if (loginResponse.token) {
+            // Stocker le token JWT et autres infos dans localStorage
+            localStorage.setItem("JoueursgameName", gameName);
+            localStorage.setItem("JoueurstagLine", tagLine);
+            localStorage.setItem("JoueursgamePuuid", gamePuuid);
+            localStorage.setItem("Joueursbalance", loginResponse.balance);
+            localStorage.setItem("token", loginResponse.token); // Stocke le token JWT
+
+            alert('✅ Joueur connecté avec succès !');
+            afficherInfosUtilisateur();
+        } else {
+            alert('Échec de la connexion, vérifiez vos identifiants');
         }
     } catch (error) {
-        console.error('Erreur lors de la connexion:', error);
+        console.error('❌ Erreur lors de la connexion:', error);
+        alert('Erreur lors de la connexion');
     }
 }
 
+
 function DeconnexionJoueurs() {
-    // Supprimer les informations de l'utilisateur du localStorage
+    // Supprimer les informations stockées (token, gamePuuid, etc.)
+    localStorage.removeItem('JoueursgamePuuid');
     localStorage.removeItem('JoueursgameName');
     localStorage.removeItem('JoueurstagLine');
-    localStorage.removeItem('JoueursgamePuuid');
     localStorage.removeItem('Joueursbalance');
+    localStorage.removeItem('JWTToken'); // Si tu stockes le JWT dans localStorage
     afficherInfosUtilisateur();
 }
 

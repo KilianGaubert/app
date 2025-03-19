@@ -84,7 +84,8 @@
         <form id="registerForm">
             <input type="text" id="gameNameRegister" placeholder="GameName" class="gameNameRegister">
             <input type="text" id="tagLineRegister" placeholder="TagLine" class="tagLineRegister">
-            <button type="button" onclick="AjoutJoueurs2(document.getElementById('gameNameRegister').value, document.getElementById('tagLineRegister').value)">
+            <input type="text" id="PasswordRegister" placeholder="Password" class="PasswordRegister">
+            <button type="button" onclick="AjoutJoueurs2(document.getElementById('gameNameRegister').value, document.getElementById('tagLineRegister').value, document.getElementById('PasswordRegister').value)">
                 Sign up
             </button>
         </form>
@@ -98,7 +99,8 @@
         <form id="registerForm">
             <input type="text" id="gameNameConnexion" placeholder="GameName">
             <input type="text" id="tagLineConnexion" placeholder="TagLine">
-            <button type="button" onclick="ConnexionJoueurs(document.getElementById('gameNameConnexion').value, document.getElementById('tagLineConnexion').value)">
+            <input type="text" id="PasswordConnexion" placeholder="Password" class="PasswordConnexion">
+            <button type="button" onclick="ConnexionJoueurs(document.getElementById('gameNameConnexion').value, document.getElementById('tagLineConnexion').value, document.getElementById('PasswordConnexion').value)">
                 Connexion
             </button>
         </form>
