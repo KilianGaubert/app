@@ -29,7 +29,7 @@
 async function initialize() {
     await UpdateBets();        // Attend que la mise à jour des paris soit terminée
     UpdateClassementBets();  // Ensuite, met à jour le classement des paris
-    afficherInfosUtilisateur();
+    await afficherInfosUtilisateur();
 }
 
 // Cette fonction est une "wrapper" pour appeler initialize() sans problème de promesse

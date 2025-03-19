@@ -54,12 +54,11 @@
     
                     const data = await response.json();
                     console.log(data);
-    
                     if (data.message === 'Paiement réussi') {
                         document.getElementById("status").innerHTML = "✅ Paiement confirmé !";
     
                         // Récupérer le montant du paiement depuis la réponse PayPal
-                        const amount = data.purchase_units[0].payments.captures[0].amount.value;// Assure-toi que `data.transaction.amount` existe dans la réponse
+                        const amount = data.data.purchase_units[0].payments.captures[0].amount.value;// Assure-toi que `data.transaction.amount` existe dans la réponse
     
                         // Exemple d'informations nécessaires pour la route ajouter-balance
                         const gamePuuid = localStorage.getItem('JoueursgamePuuid');  // Remplace avec l'ID du joueur
@@ -70,15 +69,16 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ gamePuuid, amount })
                         });
-    
+
                         const balanceData = await balanceResponse.json();
+                        console.log(balanceData)
                         if (balanceData.message) {
                             alert(balanceData.message); // Afficher la réponse de la mise à jour de balance
                         }
     
                         setTimeout(() => {
                             window.location.href = 'http://localhost:5000/RiotAPI_Bets'; // Rediriger vers le profil
-                        }, 3000);
+                        }, 50000);
                     } else {
                         document.getElementById("status").innerHTML = "❌ Paiement non confirmé.";
                     }

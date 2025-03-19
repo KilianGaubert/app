@@ -1351,22 +1351,32 @@ function DeconnexionJoueurs() {
 }
 
 // Fonction pour afficher les infos de l'utilisateur dans le div JoueursConnexion
-function afficherInfosUtilisateur() {
+async function afficherInfosUtilisateur() {
     // Récupérer les informations depuis localStorage
     const gameName = localStorage.getItem('JoueursgameName');
     const tagLine = localStorage.getItem('JoueurstagLine');
     const gamePuuid = localStorage.getItem('JoueursgamePuuid');
-    const balance = localStorage.getItem('Joueursbalance');
+
+    const Details = {
+        gameName,
+        tagLine
+    };
+
+
     console.log (gamePuuid)
     const ButtonConnexionDiv = document.getElementById('ButtonConnexion');
     const PlayerInfoDiv = document.getElementById('PlayerInfo');
     // Vérifier si les informations existent dans localStorage
     if (gameName && tagLine && gamePuuid) {
+        const response2 = await callAPI('/recuperer-balance', 'POST', Details);
+        localStorage.setItem("Joueursbalance", response2.balance);
+        const balance = localStorage.getItem('Joueursbalance');
         ButtonConnexionDiv.innerHTML = `
+        <button onclick="window.location.href='/RiotAPI_Paypal'" class="Button2">Paypal :)</button>
         <Button onclick="DeconnexionJoueurs()" class="Button2">Deconnexion</Button>
         `
         PlayerInfoDiv.innerHTML = `
-        <p>${gameName}#${tagLine}<br>balance : ${balance}</p>
+        <p>${gameName}#${tagLine}<br>balance : ${balance}€</p>
         `
 
     } else {

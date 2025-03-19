@@ -424,7 +424,7 @@ app.post('/ajouter-balance', (req, res) => {
                     VALUES (?, ?, ?)
                 `;
 
-                db.query(transactionQuery, [gamePuuid, 'paypal_deposit', amount], (err, results) => {
+                db.query(transactionQuery, [gamePuuid, 'deposit', amount], (err, results) => {
                     if (err) {
                         return db.rollback(() => {
                             res.status(500).json({ message: 'Erreur avec l\'ajout de la transaction' });
@@ -803,12 +803,11 @@ app.get('/recuperer-classement', (req, res) => {
 
 app.post('/paypal/create-order', async (req, res) => {
     const { amount } = req.body; // Le montant à payer (en USD)
-    const returnUrl = 'https://tonsite.com/confirmation-paiement';  // URL de retour
 
     try {
         const accessToken = await getAccessToken(); // Récupérer le token d'accès
-
-        const response = await fetch('https://api.sandbox.paypal.com/v2/checkout/orders', {
+        console.log(accessToken)
+        const response = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -830,7 +829,7 @@ app.post('/paypal/create-order', async (req, res) => {
         });
 
         const data = await response.json();
-        
+        console.log(data)
         if (data.id) {
             // Retourner l'ID de la commande et l'URL d'approbation
             res.json({
@@ -846,20 +845,21 @@ app.post('/paypal/create-order', async (req, res) => {
     }
 });
 
-// Endpoint pour capturer le paiement après approbation de l'utilisateur
 app.post('/paypal/capture-payment', async (req, res) => {
-    const { orderId } = req.body;
+    const { orderId } = req.body; // Récupérer l'ID de la commande depuis le corps de la requête
 
     try {
         const accessToken = await getAccessToken(); // Récupérer le token d'accès
 
-        const response = await fetch(`https://api.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+        // Assurez-vous d'utiliser la syntaxe correcte pour insérer la variable orderId
+        const response = await fetch(`https://api.paypal.com/v2/checkout/orders/${orderId}/capture`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
         });
+
         const data = await response.json();
 
         if (data.status === 'COMPLETED') {
@@ -912,7 +912,7 @@ const db = ConnexionBDD(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 async function getAccessToken() {
     const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
     
-    const response = await fetch('https://api.sandbox.paypal.com/v1/oauth2/token', {
+    const response = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${auth}`,
