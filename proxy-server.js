@@ -840,8 +840,7 @@ app.post('/paypal/create-order', async (req, res) => {
 
     try {
         const accessToken = await getAccessToken(); // Récupérer le token d'accès
-        console.log(accessToken)
-        const response = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
+        const response = await fetch('https://api-m.sandbox.paypal.com/v2/checkout/orders', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -863,7 +862,6 @@ app.post('/paypal/create-order', async (req, res) => {
         });
 
         const data = await response.json();
-        console.log(data)
         if (data.id) {
             // Retourner l'ID de la commande et l'URL d'approbation
             res.json({
@@ -886,7 +884,7 @@ app.post('/paypal/capture-payment', async (req, res) => {
         const accessToken = await getAccessToken(); // Récupérer le token d'accès
 
         // Assurez-vous d'utiliser la syntaxe correcte pour insérer la variable orderId
-        const response = await fetch(`https://api.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+        const response = await fetch(`https://api.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -973,7 +971,7 @@ const db = ConnexionBDD(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 async function getAccessToken() {
     const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
     
-    const response = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+    const response = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${auth}`,
@@ -985,7 +983,6 @@ async function getAccessToken() {
     return data.access_token;
 }
 
-// Démarrage du serveur
-app.listen(PORT, () => {
-    console.log(`Proxy serveur en écoute sur le port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Serveur en écoute sur http://0.0.0.0:${PORT}`);
 });
