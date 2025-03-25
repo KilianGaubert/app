@@ -1,0 +1,20 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "LeagueStats est un site de paris en ligne permettant aux joueurs de League of Legends de parier sur des matchs et d'obtenir des statistiques détaillées sur leur style de jeu. Le site offre différentes fonctionnalités pour suivre l'historique des joueurs, analyser leurs performances et placer des paris en toute simplicité.",
+  "main": "proxy-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KilianGaubert/app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KilianGaubert/app/issues"
+  },
+  "homepage": "https://github.com/KilianGaubert/app#readme"
+}
