@@ -5,7 +5,9 @@ const dotenv = require('dotenv');
 const path = require('path');
 const Buffer = require('buffer').Buffer; // Pour encoder en base64
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 dotenv.config();
 
@@ -18,7 +20,6 @@ const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_NAME = process.env.DB_NAME;
 const clientId = process.env.clientId;
 const secret = process.env.secret;
-const JWT_SECRET = process.env.JWT_SECRET || 'superSecretKey123';
 
 // Active CORS pour toutes les routes
 app.use(cors());
@@ -28,6 +29,29 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'templates')));
 app.use('/static', express.static(path.join(__dirname, 'static')));
 
+// **Important : Configurer la session avant Passport**
+app.use(session({
+    secret: 'trhhrthtyjergfergerth', // Remplace par une clé secrète sécurisée
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Mets `true` si tu utilises HTTPS
+}));
+
+// Initialiser Passport après la session
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+    done(null, user.gamePuuid);  // Stocke le gamePuuid ou un identifiant unique
+});
+
+passport.deserializeUser((gamePuuid, done) => {
+    db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+        if (err) return done(err);
+        if (results.length === 0) return done(null, false);  // L'utilisateur n'est pas trouvé
+        done(null, results[0]);  // Passe l'objet utilisateur à la requête suivante
+    });
+});
 
 // ✅ Corrige la route pour afficher le fichier HTML
 app.get('/RiotAPI_Classement', (req, res) => {
@@ -48,7 +72,6 @@ app.get('/RiotAPI_Statistique', (req, res) => {
 app.get('/RiotAPI_Parties', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates', 'RiotAPI_Parties.html'));
 });
-
 
 // ✅ Corrige la route pour afficher le fichier HTML
 app.get('/RiotAPI_Masteries', (req, res) => {
@@ -99,22 +122,6 @@ async function fetchRiotAPI(url, retries = 5, delay = 1000) {
         }
     }
 }
-
-const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization');
-
-    if (!token) {
-        return res.status(401).json({ message: 'Accès refusé, token manquant' });
-    }
-
-    try {
-        const decoded = jwt.verify(token.split(" ")[1], JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        res.status(403).json({ message: 'Token invalide' });
-    }
-};
 
 //RIOT//
 
@@ -916,12 +923,43 @@ app.get('/paypal/success', (req, res) => {
     res.redirect(`http://localhost:5000/RiotAPI_Paypal2?orderId=${orderId}`);
 });
 
-app.post('/connexion', (req, res) => {
+app.get('/api/get-user-info', (req, res) => {
+    // Vérifier si l'utilisateur est authentifié via Passport
+    if (req.isAuthenticated()) {
+        const { gamePuuid, balance } = req.user;  // La session contient toujours le gamePuuid et la balance
+        // Récupérer les autres informations de l'utilisateur depuis la base de données
+        db.query('SELECT gameName, tagLine FROM joueurs WHERE gamePuuid = ?', [gamePuuid], (err, results) => {
+            if (err) {
+                return res.status(500).json({ message: 'Erreur serveur' });
+            }
+
+            if (results.length > 0) {
+                const user = results[0];
+                // Retourner les informations de l'utilisateur
+                return res.json({
+                    gameName: user.gameName,
+                    tagLine: user.tagLine,
+                    balance: balance,  // Balance déjà stockée dans la session
+                });
+            } else {
+                return res.status(404).json({ message: 'Utilisateur non trouvé' });
+            }
+        });
+    } else {
+        return res.status(401).json({ message: 'Utilisateur non authentifié' });
+    }
+});
+
+
+
+app.post('/connexion', (req, res, next) => {
     const { gamePuuid, password } = req.body;
 
     // Vérifier si le gamePuuid existe dans la base de données
     db.query('SELECT * FROM joueurs WHERE gamePuuid = ?', [gamePuuid], async (err, results) => {
-        if (err) return res.status(500).json({ message: 'Erreur avec la base de données' });
+        if (err) {
+            return res.status(500).json({ message: 'Erreur avec la base de données' });
+        }
 
         if (results.length === 0) {
             return res.status(400).json({ message: 'Utilisateur non trouvé' });
@@ -935,14 +973,27 @@ app.post('/connexion', (req, res) => {
             return res.status(400).json({ message: 'Mot de passe incorrect' });
         }
 
-        // Générer le token JWT
-        const token = jwt.sign({ gamePuuid: user.gamePuuid }, JWT_SECRET, { expiresIn: '2h' });
+        // Utiliser Passport pour sérialiser l'utilisateur dans la session
+        req.login(user, (err) => {
+            if (err) return next(err);  // Si erreur dans la sérialisation
 
-        // Retourner le token et autres informations (ex: balance)
-        res.status(200).json({
-            token,
-            balance: user.balance, // Retourne la balance du joueur
+            // Retourner les infos de l'utilisateur après connexion réussie
+            return res.status(200).json({
+                balance: user.balance, // Retourne la balance du joueur
+                gameName: user.gameName,
+                tagLine: user.tagLine,
+            });
         });
+    });
+});
+
+app.post('/deconnexion', (req, res) => {
+    // Détruire la session
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur lors de la déconnexion' });
+        }
+        res.json({ success: true });
     });
 });
 
@@ -982,6 +1033,22 @@ async function getAccessToken() {
     const data = await response.json();
     return data.access_token;
 }
+
+app.get('/isAuthenticated', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({ authenticated: true, user: req.user });
+    } else {
+        res.json({ authenticated: false });
+    }
+});
+
+// Route de déconnexion
+app.get('/logout', (req, res) => {
+    req.logout((err) => {
+        res.redirect('/');
+    });
+});
+
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Serveur en écoute sur http://0.0.0.0:${PORT}`);

@@ -526,7 +526,7 @@ async function RechercheHistorique() {
             <h3>Détails des ${matches.length} dernières parties :</h3>
             <ul style="list-style-type: none; padding: 0;">${matchDetailsHTML.join('')}</ul>
         `;
-        document.getElementById('10MinClassement').innerHTML += `
+        document.getElementById('10MinClassement').innerHTML = `
             <hr>
             <h3>Moyennes des KDA par lane a 10min de jeu :</h3>
             <div>
@@ -1145,7 +1145,6 @@ async function SupprimerJoueur(gamePuuid) {
     }
 }
 
-
 async function Bets(ResultatParié) {
     const gamePuuid = localStorage.getItem("gamePuuid");
     const JoueursgamePuuid = localStorage.getItem("JoueursgamePuuid") || "Aucun Puuid";
@@ -1331,16 +1330,14 @@ async function ConnexionJoueurs(gameName, tagLine, password) {
         // Envoyer gamePuuid et password pour authentification
         const loginResponse = await callAPI('/connexion', 'POST', { gamePuuid, password });
 
-        if (loginResponse.token) {
-            // Stocker le token JWT et autres infos dans localStorage
+        if (loginResponse.balance !== undefined) {  // Vérifie si la réponse contient une balance (connexions réussies)
+            // Stocker les informations dans localStorage (non sensibles)
             localStorage.setItem("JoueursgameName", gameName);
             localStorage.setItem("JoueurstagLine", tagLine);
             localStorage.setItem("JoueursgamePuuid", gamePuuid);
-            localStorage.setItem("Joueursbalance", loginResponse.balance);
-            localStorage.setItem("token", loginResponse.token); // Stocke le token JWT
 
             alert('✅ Joueur connecté avec succès !');
-            afficherInfosUtilisateur();
+            afficherInfosUtilisateur();  // Met à jour l'interface avec les infos de l'utilisateur
         } else {
             alert('Échec de la connexion, vérifiez vos identifiants');
         }
@@ -1350,55 +1347,60 @@ async function ConnexionJoueurs(gameName, tagLine, password) {
     }
 }
 
+async function DeconnexionJoueurs() {
+    try {
+        // Appel à l'API pour déconnecter l'utilisateur (détruire la session côté serveur)
+        const response = await callAPI('/deconnexion', 'POST');
 
-function DeconnexionJoueurs() {
-    // Supprimer les informations stockées (token, gamePuuid, etc.)
-    localStorage.removeItem('JoueursgamePuuid');
-    localStorage.removeItem('JoueursgameName');
-    localStorage.removeItem('JoueurstagLine');
-    localStorage.removeItem('Joueursbalance');
-    localStorage.removeItem('JWTToken'); // Si tu stockes le JWT dans localStorage
-    afficherInfosUtilisateur();
+        if (response.success) {
+            // Supprimer les informations sensibles du localStorage
+            localStorage.removeItem('JoueursgamePuuid');
+            localStorage.removeItem('JoueursgameName');
+            localStorage.removeItem('JoueurstagLine');
+            localStorage.removeItem('Joueursbalance'); // Si tu stockes la balance dans le localStorage
+
+            alert('✅ Déconnexion réussie !');
+            afficherInfosUtilisateur();  // Met à jour l'interface
+        } else {
+            alert('Erreur lors de la déconnexion');
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de la déconnexion:', error);
+        alert('Erreur lors de la déconnexion');
+    }
 }
 
-// Fonction pour afficher les infos de l'utilisateur dans le div JoueursConnexion
 async function afficherInfosUtilisateur() {
-    // Récupérer les informations depuis localStorage
-    const gameName = localStorage.getItem('JoueursgameName');
-    const tagLine = localStorage.getItem('JoueurstagLine');
-    const gamePuuid = localStorage.getItem('JoueursgamePuuid');
-
-    const Details = {
-        gameName,
-        tagLine
-    };
-
-
-    console.log (gamePuuid)
     const ButtonConnexionDiv = document.getElementById('ButtonConnexion');
     const PlayerInfoDiv = document.getElementById('PlayerInfo');
-    // Vérifier si les informations existent dans localStorage
-    if (gameName && tagLine && gamePuuid) {
-        const response2 = await callAPI('/recuperer-balance', 'POST', Details);
-        localStorage.setItem("Joueursbalance", response2.balance);
-        const balance = localStorage.getItem('Joueursbalance');
-        ButtonConnexionDiv.innerHTML = `
-        <button onclick="window.location.href='/RiotAPI_Paypal'" class="Button2">Paypal :)</button>
-        <Button onclick="DeconnexionJoueurs()" class="Button2">Deconnexion</Button>
-        `
-        PlayerInfoDiv.innerHTML = `
-        <p>${gameName}#${tagLine}<br>balance : ${balance}€</p>
-        `
+    
+    // Appel à l'API pour récupérer les informations de la session utilisateur
+    const response = await fetch('/api/get-user-info', {
+        method: 'GET',
+        credentials: 'same-origin', // Inclure les cookies de session avec la requête
+    });
 
+    if (response.ok) {
+        const data = await response.json();
+        
+        const { gameName, tagLine, balance } = data;
+
+        if (gameName && tagLine) {
+            ButtonConnexionDiv.innerHTML = `
+                <button onclick="window.location.href='/RiotAPI_Paypal'" class="Button2">Paypal :)</button>
+                <button onclick="DeconnexionJoueurs()" class="Button2">Deconnexion</button>
+            `;
+            PlayerInfoDiv.innerHTML = `
+                <p>${gameName}#${tagLine}<br>balance : ${balance}€</p>
+            `;
+        }
     } else {
         ButtonConnexionDiv.innerHTML = `
-        <Button onclick="openPopup('registerPopup')" class="Button2">Sign up</Button>
-        <Button onclick="openPopup('connexionPopup')" class="Button2">Connexion</Button>
-    `
+            <button onclick="openPopup('registerPopup')" class="Button2">Sign up</button>
+            <button onclick="openPopup('connexionPopup')" class="Button2">Connexion</button>
+        `;
         PlayerInfoDiv.innerHTML = `
-        <strong>Utilisateur non connecté</strong>
-        `
-    ;
-
+            <strong>Utilisateur non connecté</strong>
+        `;
     }
 }
