@@ -29,12 +29,12 @@ function appelHeader_Bets(callback) {
 }
 
 function getPlayerIcon(profileIconId) {
-        const profileIconURL = `static/data_riot/15.2.1/img/profileicon/${profileIconId}.png`;
+        const profileIconURL = `static/data_riot/15.8.1/img/profileicon/${profileIconId}.png`;
         return `<img src="${profileIconURL}" alt="Icône du joueur" width="64" height="64" style="border-radius: 10px;">`;
 }
 
 function getChampionIcon(championName) {
-        const championIconPath = `static/data_riot/15.2.1/img/champion/${championName}.png`;
+        const championIconPath = `static/data_riot/15.8.1/img/champion/${championName}.png`;
         return `<img src="${championIconPath}" alt="${championName}" width="30" height="30" style="vertical-align: middle;">`;
 }
 
@@ -42,18 +42,18 @@ function getItemIcon(itemId) {
     if (!itemId || itemId === 0) {
         return '<div style="width: 32px; height: 32px; border: 1px solid gray; display: inline-block;"></div>'; // Case vide
     }
-    return `<img src="static/data_riot/15.2.1/img/item/${itemId}.png" 
+    return `<img src="static/data_riot/15.8.1/img/item/${itemId}.png" 
                 alt="Item ${itemId}" 
                 style="width: 32px; height: 32px; border: 1px solid gray; margin: 2px; border-radius: 4px;">`;
 }
 
 function getSummonerIcon(SummonerName) {
-    const championIconPath = `static/data_riot/15.2.1/img/spell/${SummonerName}.png`;
+    const championIconPath = `static/data_riot/15.8.1/img/spell/${SummonerName}.png`;
     return `<img src="${championIconPath}" alt="${SummonerName}" width="30" height="30" style="vertical-align: middle;">`;
 }
 
 function getChampionByKey(key) {
-    return fetch('static/data_riot/15.2.1/data/fr_FR/champion.json')
+    return fetch('static/data_riot/15.8.1/data/fr_FR/champion.json')
         .then(response => response.json())
         .then(data => {
             let foundChampion = null;
@@ -77,7 +77,7 @@ function getChampionByKey(key) {
 }
 
 function getSummonerByKey(key) {
-    return fetch('static/data_riot/15.2.1/data/fr_FR/summoner.json')
+    return fetch('static/data_riot/15.8.1/data/fr_FR/summoner.json')
         .then(response => response.json())
         .then(data => {
             if (!data.data) {

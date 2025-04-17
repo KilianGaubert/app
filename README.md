@@ -16,7 +16,6 @@ LeagueStats est un site de paris en ligne permettant aux joueurs de League of Le
 - **Base de données** : MySQL
 - **Frontend** : HTML, CSS, JavaScript
 - **Authentification** : Sessions via cookies
-- **Sécurité** : Tests et audits avec Burp Suite
 
 ## Installation
 1. Cloner le dépôt :
@@ -32,10 +31,3 @@ LeagueStats est un site de paris en ligne permettant aux joueurs de League of Le
    ```sh
    node proxy-server.js
    ```
-
-## Contribution
-Les contributions sont les bienvenues ! Pour contribuer, veuillez soumettre une pull request avec vos modifications.
-
-## Licence
-Ce projet est sous licence MIT.
-

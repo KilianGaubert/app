@@ -7,7 +7,6 @@ const Buffer = require('buffer').Buffer; // Pour encoder en base64
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 dotenv.config();
 
@@ -491,8 +490,6 @@ app.post('/ajouter-balance', (req, res) => {
         });
     });
 });
-
-
 
 //BDD BETS//
 
